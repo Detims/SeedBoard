@@ -61,7 +61,10 @@ export function getInventoryCounts(snapshot: Snapshot, matching: number): Invent
   let undocumented = 0;
   let unknownObservations = 0;
 
-  for (const component of snapshot.components) {
+  const distinctComponents = new Map(
+    snapshot.components.map((component) => [component.id, component]),
+  );
+  for (const component of distinctComponents.values()) {
     const status = documentation.get(component.id);
     if (status === "complete") documented += 1;
     else if (status === "partial") partialDocumentation += 1;
@@ -111,8 +114,11 @@ export function deterministicLayout(components: Component[]): PositionMap {
     delivery: 3,
     external: 3,
   };
-  const sorted = [...components].sort((left, right) =>
-    left.layer.localeCompare(right.layer) || left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
+  const sorted = [...components].sort(
+    (left, right) =>
+      left.layer.localeCompare(right.layer) ||
+      left.name.localeCompare(right.name) ||
+      left.id.localeCompare(right.id),
   );
   const offsets = new Map<number, number>();
   const positions: PositionMap = {};

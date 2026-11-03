@@ -1,6 +1,7 @@
 import { buildApp } from "./app.js";
+import { integratedScanRunner } from "./integratedScanner.js";
 
-const app = buildApp();
+const app = buildApp({ scanner: integratedScanRunner });
 const port = Number(process.env.PORT ?? "4317");
 
 if (!Number.isInteger(port) || port < 1 || port > 65_535) {

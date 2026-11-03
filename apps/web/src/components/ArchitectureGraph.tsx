@@ -13,6 +13,8 @@ import {
   type NodeProps,
   type OnNodeDrag,
   MarkerType,
+  Handle,
+  Position,
 } from "@xyflow/react";
 import { ArrowDownRight, Focus, Maximize2, Move3d } from "lucide-react";
 import { memo, useCallback, useEffect, useMemo } from "react";
@@ -58,30 +60,41 @@ function relationshipTitle(type: Relationship["type"]): string {
   return titles[type] ?? type;
 }
 
-const ComponentNode = memo(function ComponentNode({ data, selected }: NodeProps<ComponentFlowNode>) {
+const ComponentNode = memo(function ComponentNode({
+  data,
+  selected,
+}: NodeProps<ComponentFlowNode>) {
   const component = data.component;
-  const symbol = component.kind === "database" || component.kind === "migration"
-    ? "DB"
-    : component.kind === "external_service" || component.kind === "api_endpoint"
-      ? "API"
-      : component.kind === "test_suite"
-        ? "QA"
-        : component.kind === "pipeline"
-          ? "CI"
-          : component.kind === "package"
-            ? "PKG"
-            : component.kind === "runtime"
-              ? "RUN"
-              : component.layer.slice(0, 3).toUpperCase();
+  const symbol =
+    component.kind === "database" || component.kind === "migration"
+      ? "DB"
+      : component.kind === "external_service" || component.kind === "api_endpoint"
+        ? "API"
+        : component.kind === "test_suite"
+          ? "QA"
+          : component.kind === "pipeline"
+            ? "CI"
+            : component.kind === "package"
+              ? "PKG"
+              : component.kind === "runtime"
+                ? "RUN"
+                : component.layer.slice(0, 3).toUpperCase();
   return (
     <div className={`flow-node ${selected ? "selected" : ""}`} data-layer={component.layer}>
-      <span className={`flow-node-mark ${component.layer}`} aria-hidden="true">{symbol}</span>
+      <Handle type="target" position={Position.Left} id="left" className="flow-handle" />
+      <span className={`flow-node-mark ${component.layer}`} aria-hidden="true">
+        {symbol}
+      </span>
       <span className="flow-node-copy">
         <strong title={component.name}>{component.name}</strong>
         <small>{component.kind.replaceAll("_", " ")}</small>
       </span>
-      <span className={`flow-node-state ${data.active ? "active" : "quiet"}`} aria-label={data.active ? "Selected component" : "Component"} />
+      <span
+        className={`flow-node-state ${data.active ? "active" : "quiet"}`}
+        aria-label={data.active ? "Selected component" : "Component"}
+      />
       <span className="flow-node-layer">{component.layer}</span>
+      <Handle type="source" position={Position.Right} id="right" className="flow-handle" />
     </div>
   );
 });
@@ -107,7 +120,10 @@ function ArchitectureCanvas({
   focusNeighbors,
 }: GraphProps) {
   const { fitView } = useReactFlow();
-  const matchingIds = useMemo(() => new Set(matchingComponents.map(({ id }) => id)), [matchingComponents]);
+  const matchingIds = useMemo(
+    () => new Set(matchingComponents.map(({ id }) => id)),
+    [matchingComponents],
+  );
   const focusedIds = useMemo(() => {
     if (!focusNeighbors || !selectedId) return matchingIds;
     const connected = new Set(matchingIds.has(selectedId) ? [selectedId] : []);
@@ -130,56 +146,84 @@ function ArchitectureCanvas({
     [components, positions],
   );
   const initialNodes = useMemo<ComponentFlowNode[]>(
-    () => visibleComponents.map((component) => ({
-      id: component.id,
-      type: "component",
-      position: positionsWithDefaults[component.id] ?? { x: 0, y: 0 },
-      data: { component, active: component.id === selectedId },
-      selected: component.id === selectedId,
-      ariaLabel: `${component.name}, ${component.kind.replaceAll("_", " ")}, ${component.layer}`,
-    })),
+    () =>
+      visibleComponents.map((component) => ({
+        id: component.id,
+        type: "component",
+        position: positionsWithDefaults[component.id] ?? { x: 0, y: 0 },
+        data: { component, active: component.id === selectedId },
+        selected: component.id === selectedId,
+        ariaLabel: `${component.name}, ${component.kind.replaceAll("_", " ")}, ${component.layer}`,
+      })),
     [visibleComponents, positionsWithDefaults, selectedId],
   );
-  const visibleIds = useMemo(() => new Set(visibleComponents.map(({ id }) => id)), [visibleComponents]);
-  const visibleEdges = useMemo(() => visibleRelationships(relationships, visibleIds), [relationships, visibleIds]);
-  const initialEdges = useMemo<Edge[]>(() => visibleEdges.map((relationship) => ({
-    id: relationship.id,
-    source: relationship.fromId,
-    target: relationship.toId,
-    type: "smoothstep",
-    label: relationshipTitle(relationship.type),
-    labelStyle: { fill: "#718093", fontSize: 9, fontWeight: 600 },
-    labelBgStyle: { fill: "#fbfcfd", fillOpacity: 0.94 },
-    labelBgPadding: [4, 5] as [number, number],
-    labelBgBorderRadius: 5,
-    markerEnd: { type: MarkerType.ArrowClosed, color: "#b6c1cb", width: 14, height: 14 },
-    style: { stroke: "#b6c1cb", strokeWidth: 1.35 },
-  })), [visibleEdges]);
+  const visibleIds = useMemo(
+    () => new Set(visibleComponents.map(({ id }) => id)),
+    [visibleComponents],
+  );
+  const visibleEdges = useMemo(
+    () => visibleRelationships(relationships, visibleIds),
+    [relationships, visibleIds],
+  );
+  const initialEdges = useMemo<Edge[]>(
+    () =>
+      visibleEdges.map((relationship) => ({
+        id: relationship.id,
+        source: relationship.fromId,
+        target: relationship.toId,
+        type: "smoothstep",
+        label: relationshipTitle(relationship.type),
+        labelStyle: { fill: "#718093", fontSize: 9, fontWeight: 600 },
+        labelBgStyle: { fill: "#fbfcfd", fillOpacity: 0.94 },
+        labelBgPadding: [4, 5] as [number, number],
+        labelBgBorderRadius: 5,
+        markerEnd: { type: MarkerType.ArrowClosed, color: "#b6c1cb", width: 14, height: 14 },
+        style: { stroke: "#b6c1cb", strokeWidth: 1.35 },
+      })),
+    [visibleEdges],
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState<ComponentFlowNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   useEffect(() => setNodes(initialNodes), [initialNodes, setNodes]);
   useEffect(() => setEdges(initialEdges), [initialEdges, setEdges]);
 
-  const persistNodes: OnNodeDrag<ComponentFlowNode> = useCallback((_event, node) => {
-    const next: PositionMap = {};
-    for (const item of nodes) next[item.id] = { ...item.position };
-    next[node.id] = { ...node.position };
-    onPositionsChange({ ...positions, ...next });
-  }, [nodes, onPositionsChange, positions]);
+  const persistNodes: OnNodeDrag<ComponentFlowNode> = useCallback(
+    (_event, node) => {
+      const next: PositionMap = {};
+      for (const item of nodes) next[item.id] = { ...item.position };
+      next[node.id] = { ...node.position };
+      onPositionsChange({ ...positions, ...next });
+    },
+    [nodes, onPositionsChange, positions],
+  );
 
-  const handleNodeClick = useCallback((_event: React.MouseEvent, node: ComponentFlowNode) => {
-    onSelect(node.id);
-  }, [onSelect]);
+  const handleNodeClick = useCallback(
+    (_event: React.MouseEvent, node: ComponentFlowNode) => {
+      onSelect(node.id);
+    },
+    [onSelect],
+  );
 
   return (
     <div className="graph-canvas" role="region" aria-label="Interactive component relationship map">
       <div className="graph-floating-tools">
-        <span className="graph-tool-note"><Move3d size={13} /> Drag nodes to arrange</span>
-        <button className="graph-tool-button" onClick={() => fitView({ padding: 0.2, duration: 350 })} title="Fit all visible components" aria-label="Fit visible components">
+        <span className="graph-tool-note">
+          <Move3d size={13} /> Drag nodes to arrange
+        </span>
+        <button
+          className="graph-tool-button"
+          onClick={() => fitView({ padding: 0.2, duration: 350 })}
+          title="Fit all visible components"
+          aria-label="Fit visible components"
+        >
           <Maximize2 size={14} />
         </button>
-        {focusNeighbors && <span className="focus-active"><Focus size={12} /> one-hop view</span>}
+        {focusNeighbors && (
+          <span className="focus-active">
+            <Focus size={12} /> one-hop view
+          </span>
+        )}
       </div>
       <ReactFlow
         nodes={nodes}
@@ -197,7 +241,6 @@ function ArchitectureCanvas({
         fitViewOptions={{ padding: 0.22, maxZoom: 1.1, minZoom: 0.5 }}
         minZoom={0.25}
         maxZoom={1.6}
-        proOptions={{ hideAttribution: true }}
         aria-label="Application architecture graph"
         colorMode="light"
       >
@@ -205,13 +248,18 @@ function ArchitectureCanvas({
         <MiniMap
           pannable
           zoomable
-          nodeColor={(node) => componentColor[(node.data as ComponentNodeData).component.layer] ?? "#697888"}
+          nodeColor={(node) =>
+            componentColor[(node.data as ComponentNodeData).component.layer] ?? "#697888"
+          }
           maskColor="rgba(30, 47, 66, 0.07)"
           className="graph-minimap"
         />
         <Controls showInteractive={false} position="bottom-right" />
       </ReactFlow>
-      <span className="graph-visible-count"><ArrowDownRight size={12} /> {visibleComponents.length} of {matchingComponents.length} matched shown</span>
+      <span className="graph-visible-count">
+        <ArrowDownRight size={12} /> {visibleComponents.length} of {matchingComponents.length}{" "}
+        matched shown
+      </span>
     </div>
   );
 }

@@ -29,7 +29,10 @@ describe("dashboard inventory behavior", () => {
     expect(filterComponents(snapshot.components, "test suite", "all").map(({ id }) => id)).toEqual([
       "cmp-tests",
     ]);
-    expect(filterComponents(snapshot.components, "database", "data")).toHaveLength(1);
+    expect(filterComponents(snapshot.components, "database", "data").map(({ id }) => id)).toEqual([
+      "cmp-db",
+      "cmp-migration",
+    ]);
     expect(snapshot.components).toHaveLength(11);
   });
 

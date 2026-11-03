@@ -1,6 +1,10 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import type { Snapshot } from "@modernizer/contracts";
-import { exportBacklogMarkdown, exportDocumentationAppendix, exportSnapshotJson } from "@modernizer/docs";
+import {
+  exportBacklogMarkdown,
+  exportDocumentationAppendix,
+  exportSnapshotJson,
+} from "@modernizer/docs";
 import {
   type LayoutInput,
   ModernizerStore,
@@ -278,9 +282,10 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       }
       reply.type("text/markdown; charset=utf-8");
       reply.header("Content-Disposition", `attachment; filename="modernizer-${format}.md"`);
-      const content = format === "appendix"
-        ? exportDocumentationAppendix(result.snapshot)
-        : exportBacklogMarkdown(result.snapshot);
+      const content =
+        format === "appendix"
+          ? exportDocumentationAppendix(result.snapshot)
+          : exportBacklogMarkdown(result.snapshot);
       return content;
     },
   );

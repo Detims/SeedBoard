@@ -25,8 +25,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
-import type { Component, Snapshot } from "@modernizer/contracts";
+import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
 import { demoSnapshotSource, type SnapshotSource } from "./snapshotSource.js";
+import { LocalApiError } from "./apiSnapshotSource.js";
 import {
   browserLayoutStore,
   deterministicLayout,
@@ -36,13 +37,26 @@ import {
   type PositionMap,
 } from "./domain.js";
 
-type Page = "overview" | "architecture" | "inventory";
+type Page =
+  | "overview"
+  | "architecture"
+  | "inventory"
+  | "suggestions"
+  | "environments"
+  | "data"
+  | "documentation"
+  | "comparison";
 type NavItem = { id: Page; label: string; icon: typeof LayoutDashboard };
 
 const navigation: NavItem[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "architecture", label: "Architecture map", icon: Workflow },
   { id: "inventory", label: "Component inventory", icon: Boxes },
+  { id: "suggestions", label: "Suggestions", icon: Sparkles },
+  { id: "environments", label: "Environments & CI", icon: GitBranch },
+  { id: "data", label: "Data & migrations", icon: Database },
+  { id: "documentation", label: "Documentation", icon: BookOpen },
+  { id: "comparison", label: "Snapshot comparison", icon: GitBranch },
 ];
 
 const formatTime = new Intl.DateTimeFormat(undefined, {
@@ -53,27 +67,100 @@ const formatTime = new Intl.DateTimeFormat(undefined, {
 type SnapshotState =
   | { status: "loading" }
   | { status: "ready"; snapshot: Snapshot }
-  | { status: "error" };
+  | { status: "error"; message: string; code: string };
 
 export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: SnapshotSource }) {
   const [snapshotState, setSnapshotState] = useState<SnapshotState>({ status: "loading" });
   const [retry, setRetry] = useState(0);
+  const [scanNotice, setScanNotice] = useState("");
 
   useEffect(() => {
     let active = true;
     setSnapshotState({ status: "loading" });
-    Promise.resolve().then(() => snapshotSource.loadSnapshot()).then((loaded) => {
-      if (active) setSnapshotState({ status: "ready", snapshot: loaded });
-    }).catch(() => {
-      if (active) setSnapshotState({ status: "error" });
-    });
-    return () => { active = false; };
+    Promise.resolve()
+      .then(() => snapshotSource.loadSnapshot())
+      .then((loaded) => {
+        if (active) setSnapshotState({ status: "ready", snapshot: loaded });
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setSnapshotState({
+            status: "error",
+            message:
+              error instanceof Error ? error.message : "The local assessment could not be loaded.",
+            code: error instanceof LocalApiError ? error.code : "LOAD_FAILED",
+          });
+      });
+    return () => {
+      active = false;
+    };
   }, [snapshotSource, retry]);
 
   if (snapshotState.status === "loading") return <SnapshotLoading />;
-  if (snapshotState.status === "error") return <SnapshotError onRetry={() => setRetry((value) => value + 1)} />;
-
+  if (snapshotState.status === "error")
+    return (
+      <SnapshotError
+        message={snapshotState.message}
+        code={snapshotState.code}
+        onRetry={() => setRetry((value) => value + 1)}
+        onScan={
+          snapshotSource.scanLatest
+            ? async () => {
+                setSnapshotState({ status: "loading" });
+                try {
+                  setSnapshotState({
+                    status: "ready",
+                    snapshot: await snapshotSource.scanLatest!(),
+                  });
+                } catch (error) {
+                  setSnapshotState({
+                    status: "error",
+                    message: error instanceof Error ? error.message : "The scan failed.",
+                    code: error instanceof LocalApiError ? error.code : "SCAN_FAILED",
+                  });
+                }
+              }
+            : undefined
+        }
+      />
+    );
   const snapshot = snapshotState.snapshot;
+  return (
+    <LoadedDashboard
+      snapshot={snapshot}
+      snapshotSource={snapshotSource}
+      scanNotice={scanNotice}
+      onScan={async () => {
+        if (!snapshotSource.scanLatest) return;
+        setScanNotice(
+          "Scan running. The current snapshot stays available until a new one passes validation.",
+        );
+        try {
+          setSnapshotState({ status: "ready", snapshot: await snapshotSource.scanLatest() });
+          setScanNotice("New snapshot published successfully.");
+        } catch (error) {
+          setScanNotice(
+            error instanceof Error
+              ? error.message
+              : "The scan failed. The previous snapshot remains available.",
+          );
+        }
+      }}
+    />
+  );
+}
+
+function LoadedDashboard({
+  snapshot,
+  snapshotSource,
+  scanNotice,
+  onScan,
+}: {
+  snapshot: Snapshot;
+  snapshotSource: SnapshotSource;
+  scanNotice: string;
+  onScan: () => void;
+}) {
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
   const [layer, setLayer] = useState<LayerFilter>("all");
@@ -81,9 +168,7 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
   const [focusNeighbors, setFocusNeighbors] = useState(false);
   const [positions, setPositions] = useState<PositionMap>(() => {
     const defaults = deterministicLayout(snapshot.components);
-    const saved = browserLayoutStore.load(
-      `modernizer:v1:${snapshot.projectId}:${snapshot.id}`,
-    );
+    const saved = browserLayoutStore.load(`modernizer:v1:${snapshot.projectId}:${snapshot.id}`);
     return { ...defaults, ...saved };
   });
 
@@ -98,6 +183,26 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
   useEffect(() => {
     browserLayoutStore.save(layoutKey, positions);
   }, [layoutKey, positions]);
+
+  useEffect(() => {
+    let active = true;
+    snapshotSource
+      .loadLayout?.(snapshot.projectId)
+      .then((saved) => {
+        if (active && saved) setPositions((current) => ({ ...current, ...saved }));
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, [snapshot.projectId, snapshotSource]);
+
+  useEffect(() => {
+    if (snapshot.demo) return;
+    snapshotSource
+      .saveLayout?.(snapshot.projectId, "architecture", positions)
+      .catch(() => undefined);
+  }, [positions, snapshot.demo, snapshot.projectId, snapshotSource]);
 
   const resetLayout = () => setPositions(deterministicLayout(snapshot.components));
 
@@ -116,7 +221,9 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
         </a>
 
         <div className="workspace-switcher">
-          <div className="workspace-avatar" aria-hidden="true">M</div>
+          <div className="workspace-avatar" aria-hidden="true">
+            M
+          </div>
           <div className="workspace-meta">
             <span className="workspace-name">{snapshot.projectId}</span>
             <span className="workspace-kind">Assessment workspace</span>
@@ -125,12 +232,13 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
         </div>
 
         <div className="nav-group-label">WORKSPACE</div>
-        <nav className="primary-nav">
-          {navigation.map(({ id, label, icon: Icon }) => (
+        <nav className="primary-nav" aria-label="Workspace">
+          {navigation.slice(0, 3).map(({ id, label, icon: Icon }) => (
             <button
               className={`nav-item ${page === id ? "active" : ""}`}
               key={id}
               onClick={() => setPage(id)}
+              aria-label={label}
               aria-current={page === id ? "page" : undefined}
             >
               <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
@@ -141,23 +249,23 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
         </nav>
 
         <div className="nav-group-label second-label">ASSESSMENT</div>
-        <div className="nav-item disabled-nav" aria-disabled="true">
-          <Sparkles size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span>Suggestions</span>
-          <span className="nav-count pending-count">6</span>
-        </div>
-        <div className="nav-item disabled-nav" aria-disabled="true">
-          <GitBranch size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span>Environments &amp; CI</span>
-        </div>
-        <div className="nav-item disabled-nav" aria-disabled="true">
-          <Database size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span>Data &amp; migrations</span>
-        </div>
-        <div className="nav-item disabled-nav" aria-disabled="true">
-          <BookOpen size={17} strokeWidth={1.8} aria-hidden="true" />
-          <span>Documentation</span>
-        </div>
+        <nav className="primary-nav" aria-label="Assessment views">
+          {navigation.slice(3).map(({ id, label, icon: Icon }) => (
+            <button
+              className={`nav-item ${page === id ? "active" : ""}`}
+              key={id}
+              onClick={() => setPage(id)}
+              aria-label={label}
+              aria-current={page === id ? "page" : undefined}
+            >
+              <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+              <span>{label}</span>
+              {id === "suggestions" && (
+                <span className="nav-count">{snapshot.suggestions.length}</span>
+              )}
+            </button>
+          ))}
+        </nav>
 
         <div className="sidebar-spacer" />
         <div className="coverage-card">
@@ -169,8 +277,15 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
             <span>{counts.documented + counts.partialDocumentation}</span>
             <span className="coverage-total">/ {counts.total} documented</span>
           </div>
-          <div className="coverage-track" aria-label={`${counts.undocumented} components lack documentation`}>
-            <span style={{ width: `${counts.total ? ((counts.documented + counts.partialDocumentation) / counts.total) * 100 : 0}%` }} />
+          <div
+            className="coverage-track"
+            aria-label={`${counts.undocumented} components lack documentation`}
+          >
+            <span
+              style={{
+                width: `${counts.total ? ((counts.documented + counts.partialDocumentation) / counts.total) * 100 : 0}%`,
+              }}
+            />
           </div>
           <p>{counts.undocumented} components need a documentation review.</p>
         </div>
@@ -186,7 +301,7 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
           <div className="breadcrumbs">
             <span>Workspace</span>
             <span className="breadcrumb-slash">/</span>
-            <strong>{page === "overview" ? "Overview" : page === "architecture" ? "Architecture" : "Inventory"}</strong>
+            <strong>{pageTitle(page)}</strong>
           </div>
           <div className="topbar-actions">
             <label className="global-search">
@@ -197,9 +312,19 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
-              <kbd><Command size={11} aria-label="Command" /> K</kbd>
+              <kbd>
+                <Command size={11} aria-label="Command" /> K
+              </kbd>
             </label>
-            <span className="demo-pill"><span className="demo-dot" /> DEMO DATA</span>
+            {snapshot.demo ? (
+              <span className="demo-pill">
+                <span className="demo-dot" /> DEMO DATA
+              </span>
+            ) : (
+              <button className="soft-button scan-button" onClick={onScan}>
+                Run scan
+              </button>
+            )}
             <button className="icon-button" aria-label="Help and information" title="Help">
               <CircleHelp size={18} />
             </button>
@@ -207,35 +332,95 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
         </header>
 
         <div className="content-scroll">
+          {scanNotice && (
+            <p className="action-notice" role="status">
+              {scanNotice}
+            </p>
+          )}
           <div className="page-heading">
             <div>
-              <div className="eyebrow"><span className="eyebrow-dot" /> APPLICATION INTELLIGENCE</div>
-              <h1>{page === "overview" ? "Your system, at a glance." : page === "architecture" ? "Architecture map" : "Component inventory"}</h1>
+              <div className="eyebrow">
+                <span className="eyebrow-dot" /> APPLICATION INTELLIGENCE
+              </div>
+              <h1>{page === "overview" ? "Your system, at a glance." : pageTitle(page)}</h1>
               <p>
                 {page === "overview"
                   ? "A clear view of what's connected, what's unknown, and where to look next."
                   : page === "architecture"
                     ? "Explore components and the relationships backed by this assessment."
-                    : "Search and inspect every object in this snapshot, including collapsed map nodes."}
+                    : page === "inventory"
+                      ? "Search and inspect every object in this snapshot, including collapsed map nodes."
+                      : page === "suggestions"
+                        ? "Review evidence-backed modernization suggestions before making any changes."
+                        : page === "environments"
+                          ? "Inspect declared environments, test gates, workflows, and known unknowns."
+                          : page === "data"
+                            ? "Review database components and migration files without implying applied state."
+                            : page === "documentation"
+                              ? "Review official references, internal guides, and explicit documentation gaps."
+                              : "Compare immutable snapshots to see added, removed, and changed objects."}
               </p>
             </div>
             <div className="snapshot-select">
               <span className="snapshot-label">SNAPSHOT</span>
-              <span className="snapshot-value"><span className="snapshot-indicator" /> Synthetic example <ChevronDown size={14} /></span>
+              <span className="snapshot-value">
+                <span className="snapshot-indicator" />{" "}
+                {snapshot.demo
+                  ? "Synthetic example"
+                  : formatTime.format(new Date(snapshot.capturedAt))}{" "}
+                <ChevronDown size={14} />
+              </span>
             </div>
           </div>
 
-          <div className="state-banner demo-banner">
-            <div className="banner-symbol"><Activity size={15} /></div>
-            <div><strong>Exploring a synthetic snapshot</strong><span>Every signal below is illustrative. No repository has been scanned.</span></div>
-            <span className="banner-time">Captured {formatTime.format(new Date(snapshot.capturedAt))}</span>
-          </div>
+          {snapshot.demo && (
+            <div className="state-banner demo-banner">
+              <div className="banner-symbol">
+                <Activity size={15} />
+              </div>
+              <div>
+                <strong>Exploring a synthetic snapshot</strong>
+                <span>Every signal below is illustrative. No repository has been scanned.</span>
+              </div>
+              <span className="banner-time">
+                Captured {formatTime.format(new Date(snapshot.capturedAt))}
+              </span>
+            </div>
+          )}
 
           <section className="metrics-grid" aria-label="Assessment summary">
-            <MetricCard label="Architecture objects" value={counts.total} helper="Distinct components" icon={Boxes} tone="blue" trend="Snapshot count" />
-            <MetricCard label="Connections" value={counts.relationships} helper="Evidence-backed links" icon={Cable} tone="violet" trend="Across the stack" />
-            <MetricCard label="Unknown observations" value={counts.unknownObservations} helper="Health, CI or migrations" icon={CircleHelp} tone="amber" trend="Worth verifying" />
-            <MetricCard label="Docs need review" value={counts.undocumented + counts.partialDocumentation} helper={`${counts.undocumented} undocumented · ${counts.partialDocumentation} partial`} icon={BookOpen} tone="rose" trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`} />
+            <MetricCard
+              label="Architecture objects"
+              value={counts.total}
+              helper="Distinct components"
+              icon={Boxes}
+              tone="blue"
+              trend="Snapshot count"
+            />
+            <MetricCard
+              label="Connections"
+              value={counts.relationships}
+              helper="Evidence-backed links"
+              icon={Cable}
+              tone="violet"
+              trend="Across the stack"
+            />
+            <MetricCard
+              label="Unknown observations"
+              value={counts.unknownObservations}
+              helper="Health, CI or migrations"
+              icon={CircleHelp}
+              tone="amber"
+              trend="Worth verifying"
+            />
+            <MetricCard
+              label="Docs need review"
+              value={counts.undocumented + counts.partialDocumentation}
+              helper={`${counts.undocumented} undocumented · ${counts.partialDocumentation} partial`}
+              icon={BookOpen}
+              tone="rose"
+              trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`}
+            />
           </section>
 
           {page === "inventory" ? (
@@ -248,38 +433,90 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
               onLayerChange={setLayer}
               total={counts.total}
             />
-          ) : (
-            <section className={`architecture-section ${page === "architecture" ? "expanded" : ""}`}>
+          ) : page === "overview" || page === "architecture" ? (
+            <section
+              className={`architecture-section ${page === "architecture" ? "expanded" : ""}`}
+            >
               <div className="section-header">
                 <div>
-                  <div className="section-title-row"><h2>{page === "overview" ? "System architecture" : "Explore the map"}</h2><span className="section-count">{counts.total} objects</span></div>
-                  <p>{page === "overview" ? "Select any node to see its versions, signals, and evidence." : "Drag to rearrange. Pan or zoom to follow connections."}</p>
+                  <div className="section-title-row">
+                    <h2>{page === "overview" ? "System architecture" : "Explore the map"}</h2>
+                    <span className="section-count">{counts.total} objects</span>
+                  </div>
+                  <p>
+                    {page === "overview"
+                      ? "Select any node to see its versions, signals, and evidence."
+                      : "Drag to rearrange. Pan or zoom to follow connections."}
+                  </p>
                 </div>
                 <div className="section-actions">
-                  <button className={`soft-button ${focusNeighbors ? "selected" : ""}`} onClick={() => setFocusNeighbors((current) => !current)}>
+                  <button
+                    className={`soft-button ${focusNeighbors ? "selected" : ""}`}
+                    onClick={() => setFocusNeighbors((current) => !current)}
+                  >
                     <Filter size={14} aria-hidden="true" />
                     {focusNeighbors ? "Showing neighbors" : "Focus neighbors"}
                   </button>
-                  <button className="soft-button" onClick={resetLayout} title="Restore the suggested map layout">
+                  <button
+                    className="soft-button"
+                    onClick={resetLayout}
+                    title="Restore the suggested map layout"
+                  >
                     <ArrowDownRight size={15} aria-hidden="true" /> Reset layout
                   </button>
-                  {page === "overview" && <button className="text-link" onClick={() => setPage("architecture")}>Open full map <ArrowRight size={14} /></button>}
+                  {page === "overview" && (
+                    <button className="text-link" onClick={() => setPage("architecture")}>
+                      Open full map <ArrowRight size={14} />
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="map-filter-row">
                 <div className="layer-filters" aria-label="Filter map by architecture layer">
-                  {(["all", "frontend", "backend", "testing", "data", "delivery", "shared", "external"] as const).map((value) => (
-                    <button key={value} className={`filter-chip ${layer === value ? "active" : ""}`} onClick={() => setLayer(value)}>
-                      {value === "all" ? "All layers" : value.charAt(0).toUpperCase() + value.slice(1)}
+                  {(
+                    [
+                      "all",
+                      "frontend",
+                      "backend",
+                      "testing",
+                      "data",
+                      "delivery",
+                      "shared",
+                      "external",
+                    ] as const
+                  ).map((value) => (
+                    <button
+                      key={value}
+                      className={`filter-chip ${layer === value ? "active" : ""}`}
+                      onClick={() => setLayer(value)}
+                    >
+                      {value === "all"
+                        ? "All layers"
+                        : value.charAt(0).toUpperCase() + value.slice(1)}
                     </button>
                   ))}
                 </div>
-                <span className="object-count">Showing <strong>{filtered.length}</strong> of {counts.total} objects</span>
+                <span className="object-count">
+                  Showing <strong>{filtered.length}</strong> of {counts.total} objects
+                </span>
               </div>
               <div className="map-and-details">
                 <div className="map-card">
                   {filtered.length === 0 ? (
-                    <div className="empty-state"><Search size={24} /><strong>No components match those filters</strong><span>Try another name or clear a layer filter.</span><button className="soft-button" onClick={() => { setQuery(""); setLayer("all"); }}>Clear filters</button></div>
+                    <div className="empty-state">
+                      <Search size={24} />
+                      <strong>No components match those filters</strong>
+                      <span>Try another name or clear a layer filter.</span>
+                      <button
+                        className="soft-button"
+                        onClick={() => {
+                          setQuery("");
+                          setLayer("all");
+                        }}
+                      >
+                        Clear filters
+                      </button>
+                    </div>
                   ) : (
                     <ArchitectureGraph
                       components={snapshot.components}
@@ -293,43 +530,120 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
                     />
                   )}
                   <div className="map-legend">
-                    <span><i className="legend-dot node-front" /> Frontend</span>
-                    <span><i className="legend-dot node-back" /> Backend</span>
-                    <span><i className="legend-dot node-data" /> Data</span>
-                    <span><i className="legend-dot node-external" /> External</span>
+                    <span>
+                      <i className="legend-dot node-front" /> Frontend
+                    </span>
+                    <span>
+                      <i className="legend-dot node-back" /> Backend
+                    </span>
+                    <span>
+                      <i className="legend-dot node-data" /> Data
+                    </span>
+                    <span>
+                      <i className="legend-dot node-external" /> External
+                    </span>
                   </div>
                 </div>
-                <ComponentDetails component={selected} snapshot={snapshot} onSelect={setSelectedId} />
+                <ComponentDetails
+                  component={selected}
+                  snapshot={snapshot}
+                  onSelect={setSelectedId}
+                />
               </div>
             </section>
+          ) : (
+            <AssessmentView page={page} snapshot={snapshot} source={snapshotSource} />
           )}
 
           {page === "overview" && (
             <div className="lower-grid">
               <section className="panel-card pipeline-card">
-                <div className="panel-header"><div><div className="section-title-row"><h2>Delivery path</h2><span className="mini-status unknown-status">UNKNOWN</span></div><p>Workflow is declared; live run results are not connected.</p></div><Workflow size={19} className="panel-header-icon" /></div>
-                <div className="pipeline-track">
-                  <PipelineNode icon={FileCode2} name="Source" detail="Git repository" status="declared" />
-                  <div className="pipeline-line"><ArrowRight size={14} /></div>
-                  <PipelineNode icon={Workflow} name="Workflow" detail="1 declared" status="unknown" />
-                  <div className="pipeline-line"><ArrowRight size={14} /></div>
-                  <PipelineNode icon={Database} name="Target" detail="Not verified" status="unknown" />
+                <div className="panel-header">
+                  <div>
+                    <div className="section-title-row">
+                      <h2>Delivery path</h2>
+                      <span className="mini-status unknown-status">DECLARED</span>
+                    </div>
+                    <p>Workflow and test components are shown from collected repository files.</p>
+                  </div>
+                  <Workflow size={19} className="panel-header-icon" />
                 </div>
-                <div className="pipeline-note"><CircleHelp size={14} /> No workflow execution or deployment connection was queried.</div>
+                <div className="pipeline-track">
+                  <PipelineNode
+                    icon={FileCode2}
+                    name="Source"
+                    detail="Git repository"
+                    status="declared"
+                  />
+                  <div className="pipeline-line">
+                    <ArrowRight size={14} />
+                  </div>
+                  <PipelineNode
+                    icon={Workflow}
+                    name="Workflow"
+                    detail={`${snapshot.components.filter((item) => item.kind === "pipeline").length} declared`}
+                    status="unknown"
+                  />
+                  <div className="pipeline-line">
+                    <ArrowRight size={14} />
+                  </div>
+                  <PipelineNode
+                    icon={Database}
+                    name="Target"
+                    detail="Not verified"
+                    status="unknown"
+                  />
+                </div>
+                <div className="pipeline-note">
+                  <CircleHelp size={14} /> No workflow execution or deployment connection was
+                  queried.
+                </div>
               </section>
               <section className="panel-card suggestions-card">
-                <div className="panel-header"><div><div className="section-title-row"><h2>Review queue</h2><span className="suggestion-badge">6 examples</span></div><p>Illustrative findings across the six work categories.</p></div><Sparkles size={19} className="panel-header-icon accent-icon" /></div>
-                <div className="suggestion-preview-list">
-                  <SuggestionPreview category="fix" title="Repair the workflow prerequisite" priority="P1" tone="coral" />
-                  <SuggestionPreview category="refactor" title="Review API–worker coupling" priority="P2" tone="violet" />
-                  <SuggestionPreview category="docs" title="Document the in-house API" priority="P3" tone="blue" />
+                <div className="panel-header">
+                  <div>
+                    <div className="section-title-row">
+                      <h2>Review queue</h2>
+                      <span className="suggestion-badge">
+                        {snapshot.suggestions.length} suggestions
+                      </span>
+                    </div>
+                    <p>Evidence-backed proposals for owner review.</p>
+                  </div>
+                  <Sparkles size={19} className="panel-header-icon accent-icon" />
                 </div>
-                <div className="panel-footer-note"><Sparkles size={13} /> Examples only · Rule engine pending T3 validation</div>
+                <div className="suggestion-preview-list">
+                  {snapshot.suggestions.slice(0, 3).map((item) => (
+                    <SuggestionPreview
+                      key={item.id}
+                      category={item.category}
+                      title={item.title}
+                      priority={item.priority}
+                      tone="blue"
+                    />
+                  ))}
+                  {snapshot.suggestions.length === 0 && (
+                    <div className="detail-muted">
+                      No suggestions met their evidence requirements.
+                    </div>
+                  )}
+                </div>
+                <div className="panel-footer-note">
+                  <Sparkles size={13} /> Suggestions are review-only and never auto-applied.
+                </div>
               </section>
             </div>
           )}
 
-          <footer className="page-footer"><span>MODERNIZER <span className="footer-separator">/</span> LOCAL ASSESSMENT</span><span><ShieldCheck size={12} /> Read-only demonstration</span></footer>
+          <footer className="page-footer">
+            <span>
+              MODERNIZER <span className="footer-separator">/</span> LOCAL ASSESSMENT
+            </span>
+            <span>
+              <ShieldCheck size={12} />{" "}
+              {snapshot.demo ? "Synthetic demo" : "Read-only repository scan"}
+            </span>
+          </footer>
         </div>
       </main>
     </div>
@@ -337,27 +651,577 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
 }
 
 function SnapshotLoading() {
-  return <main className="loading-shell" aria-live="polite"><div className="loading-mark"><span /><span /><span /><span /></div><div className="loading-spinner" /><strong>Preparing assessment</strong><span>Loading the selected snapshot…</span></main>;
+  return (
+    <main className="loading-shell" aria-live="polite">
+      <div className="loading-mark">
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+      <div className="loading-spinner" />
+      <strong>Preparing assessment</strong>
+      <span>Loading the selected snapshot…</span>
+    </main>
+  );
 }
 
-function SnapshotError({ onRetry }: { onRetry: () => void }) {
-  return <main className="error-shell"><div className="error-symbol"><CircleHelp size={21} /></div><span className="eyebrow">ASSESSMENT UNAVAILABLE</span><h1>We couldn’t load this snapshot.</h1><p>The source did not return a valid assessment. Check its status and try again.</p><button className="soft-button" onClick={onRetry}><ArrowUpRight size={14} /> Retry snapshot</button></main>;
+function SnapshotError({
+  message,
+  code,
+  onRetry,
+  onScan,
+}: {
+  message: string;
+  code: string;
+  onRetry: () => void;
+  onScan?: (() => void) | undefined;
+}) {
+  return (
+    <main className="error-shell">
+      <div className="error-symbol">
+        <CircleHelp size={21} />
+      </div>
+      <span className="eyebrow">ASSESSMENT UNAVAILABLE</span>
+      <h1>
+        {code === "PROJECTS_EMPTY"
+          ? "Register a repository to begin."
+          : code === "SNAPSHOT_EMPTY"
+            ? "Your first scan is ready."
+            : "We couldn’t load this snapshot."}
+      </h1>
+      <p>{message}</p>
+      <div className="error-actions">
+        {onScan && code === "SNAPSHOT_EMPTY" && (
+          <button className="soft-button" onClick={onScan}>
+            <Workflow size={14} /> Run first scan
+          </button>
+        )}
+        <button className="soft-button" onClick={onRetry}>
+          <ArrowUpRight size={14} /> Retry snapshot
+        </button>
+        {code === "PROJECTS_EMPTY" && (
+          <span className="error-command">modernizer project register &lt;folder&gt;</span>
+        )}
+      </div>
+    </main>
+  );
 }
 
-function MetricCard({ label, value, helper, icon: Icon, tone, trend }: {
-  label: string; value: number; helper: string; icon: typeof Boxes; tone: string; trend: string;
+function pageTitle(page: Page): string {
+  return {
+    overview: "Overview",
+    architecture: "Architecture map",
+    inventory: "Component inventory",
+    suggestions: "Suggestions",
+    environments: "Environments & CI",
+    data: "Data & migrations",
+    documentation: "Documentation",
+    comparison: "Snapshot comparison",
+  }[page];
+}
+
+function AssessmentView({
+  page,
+  snapshot,
+  source,
+}: {
+  page: Page;
+  snapshot: Snapshot;
+  source: SnapshotSource;
+}) {
+  const [workingId, setWorkingId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [notice, setNotice] = useState("");
+  const evidence = new Map(snapshot.evidence.map((item) => [item.id, item]));
+  const download = async (format: "json" | "backlog" | "appendix") => {
+    try {
+      if (!source.exportSnapshot) throw new Error("Exports are available for local API snapshots.");
+      const blob = await source.exportSnapshot(snapshot.id, format);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `modernizer-${format}.${format === "json" ? "json" : "md"}`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+      setNotice(`${format} export downloaded.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Export failed.");
+    }
+  };
+  const decide = async (suggestion: Suggestion, state: "accepted" | "dismissed") => {
+    try {
+      if (!source.saveDecision)
+        throw new Error("Decision persistence is available for local API snapshots.");
+      if (state === "dismissed" && !reason.trim()) {
+        setNotice("Add a short reason before dismissing this suggestion.");
+        return;
+      }
+      setWorkingId(suggestion.fingerprint);
+      await source.saveDecision(
+        snapshot.projectId,
+        suggestion.fingerprint,
+        state,
+        state === "dismissed" ? reason.trim() : "",
+      );
+      setReason("");
+      setNotice(`Suggestion marked ${state}.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not save the decision.");
+    } finally {
+      setWorkingId(null);
+    }
+  };
+  const downloads = (
+    <div className="export-actions">
+      <button className="soft-button" onClick={() => void download("appendix")}>
+        Export appendix
+      </button>
+      <button className="soft-button" onClick={() => void download("backlog")}>
+        Export backlog
+      </button>
+      <button className="soft-button" onClick={() => void download("json")}>
+        Export snapshot
+      </button>
+    </div>
+  );
+
+  if (page === "comparison") return <ComparisonView snapshot={snapshot} source={source} />;
+
+  if (page === "suggestions")
+    return (
+      <section className="assessment-view">
+        <div className="view-toolbar">
+          <div>
+            <h2>Review queue</h2>
+            <p>
+              Each suggestion includes its rule version, evidence, confidence, rationale, and
+              verification steps.
+            </p>
+          </div>
+          {downloads}
+        </div>
+        {notice && (
+          <p className="action-notice" role="status">
+            {notice}
+          </p>
+        )}
+        {snapshot.suggestions.length ? (
+          snapshot.suggestions.map((item) => (
+            <article className="panel-card assessment-card" key={item.id}>
+              <div className="assessment-card-head">
+                <span className="category-mark blue">{item.category}</span>
+                <span className="priority-pill">{item.priority}</span>
+                <span className="confidence-label">{item.confidence} confidence</span>
+              </div>
+              <h3>{item.title}</h3>
+              <p>{item.rationale}</p>
+              <p>
+                <strong>Suggested action:</strong> {item.action}
+              </p>
+              <div className="suggestion-evidence">
+                <strong>Evidence</strong>
+                {item.evidenceIds.map((id) => (
+                  <span key={id}>
+                    {evidence.get(id)?.path ?? evidence.get(id)?.description ?? id}
+                  </span>
+                ))}
+              </div>
+              <details>
+                <summary>Verification steps</summary>
+                <ol>
+                  {item.verification.map((step, index) => (
+                    <li key={index}>{step}</li>
+                  ))}
+                </ol>
+              </details>
+              <div className="decision-actions">
+                <button
+                  className="soft-button"
+                  disabled={workingId === item.fingerprint}
+                  onClick={() => void decide(item, "accepted")}
+                >
+                  Mark accepted
+                </button>
+                <input
+                  aria-label={`Dismissal reason for ${item.title}`}
+                  value={workingId === item.fingerprint ? reason : reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="Reason to dismiss"
+                />
+                <button
+                  className="soft-button"
+                  disabled={workingId === item.fingerprint}
+                  onClick={() => void decide(item, "dismissed")}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </article>
+          ))
+        ) : (
+          <div className="empty-state compact-empty">
+            <Sparkles size={22} />
+            <strong>No evidence-backed suggestions</strong>
+            <span>Unknown or unsupported inputs do not become asserted defects.</span>
+          </div>
+        )}
+      </section>
+    );
+
+  if (page === "environments") {
+    const items = snapshot.components.filter(
+      (item) => item.kind === "pipeline" || item.kind === "test_suite",
+    );
+    return (
+      <section className="assessment-view">
+        <div className="view-toolbar">
+          <div>
+            <h2>Environments and delivery</h2>
+            <p>File declarations are distinct from provider runs and deployed state.</p>
+          </div>
+          {downloads}
+        </div>
+        <div className="assessment-grid">
+          {snapshot.environments.map((environment) => (
+            <article className="panel-card assessment-card" key={environment.id}>
+              <span className="eyebrow">ENVIRONMENT</span>
+              <h3>{environment.name}</h3>
+              <p>
+                Environment is declared. Live deployment evidence is not queried by the local scan.
+              </p>
+            </article>
+          ))}
+          {items.map((item) => (
+            <article className="panel-card assessment-card" key={item.id}>
+              <span className="eyebrow">{item.kind.replaceAll("_", " ")}</span>
+              <h3>{item.name}</h3>
+              <p>{item.locator}</p>
+              <ObservationList component={item} />
+            </article>
+          ))}
+          {!items.length && !snapshot.environments.length && (
+            <div className="empty-state compact-empty">
+              <GitBranch size={22} />
+              <strong>No environment or workflow declarations found</strong>
+              <span>Coverage and unsupported inputs remain in the snapshot inventory.</span>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (page === "data") {
+    const items = snapshot.components.filter(
+      (item) => item.kind === "database" || item.kind === "migration",
+    );
+    return (
+      <section className="assessment-view">
+        <div className="view-toolbar">
+          <div>
+            <h2>Database and migration inventory</h2>
+            <p>
+              Migration files show repository declarations; application state stays unknown without
+              live database evidence.
+            </p>
+          </div>
+          {downloads}
+        </div>
+        <div className="assessment-grid">
+          {items.map((item) => (
+            <article className="panel-card assessment-card" key={item.id}>
+              <span className="eyebrow">{item.kind}</span>
+              <h3>{item.name}</h3>
+              <p>{item.locator}</p>
+              <ObservationList component={item} />
+              {item.versions.map((version, index) => (
+                <div className="version-row" key={`${version.facet}-${index}`}>
+                  <span className={`version-facet ${version.facet}`}>{version.facet}</span>
+                  <strong>{version.value}</strong>
+                </div>
+              ))}
+            </article>
+          ))}
+          {!items.length && (
+            <div className="empty-state compact-empty">
+              <Database size={22} />
+              <strong>No database or migration objects found</strong>
+              <span>Unknown database state is not treated as a positive health result.</span>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  const documentation = new Map(snapshot.documentation.map((item) => [item.componentId, item]));
+  return (
+    <section className="assessment-view">
+      <div className="view-toolbar">
+        <div>
+          <h2>Service documentation appendix</h2>
+          <p>{snapshot.components.length} components · gaps remain visible until reviewed.</p>
+        </div>
+        {downloads}
+      </div>
+      <div className="table-wrap">
+        <table className="inventory-table">
+          <thead>
+            <tr>
+              <th>SERVICE / COMPONENT</th>
+              <th>VERSION</th>
+              <th>STATUS</th>
+              <th>OFFICIAL DOCUMENTATION</th>
+              <th>INTERNAL GUIDE / GAP</th>
+            </tr>
+          </thead>
+          <tbody>
+            {snapshot.components.map((component) => {
+              const doc = documentation.get(component.id);
+              return (
+                <tr key={component.id}>
+                  <td>
+                    <strong>{component.name}</strong>
+                    <small>
+                      {component.kind} · {component.locator}
+                    </small>
+                  </td>
+                  <td>
+                    {component.versions
+                      .map((version) => `${version.facet}: ${version.value}`)
+                      .join("; ") || "unknown"}
+                  </td>
+                  <td>
+                    <DocumentationPill state={doc?.status ?? "undocumented"} />
+                  </td>
+                  <td>
+                    {doc?.officialReferences.length
+                      ? doc.officialReferences.map((reference) => (
+                          <div key={reference.url}>
+                            <a href={reference.url} target="_blank" rel="noreferrer">
+                              {reference.title}
+                            </a>
+                            <small>
+                              {reference.verifiedAt
+                                ? `Checked ${reference.verifiedAt}`
+                                : "Verification time unknown"}
+                            </small>
+                          </div>
+                        ))
+                      : "Not located"}
+                  </td>
+                  <td>
+                    {doc?.internalPaths.map((path) => (
+                      <div key={path}>{path}</div>
+                    ))}
+                    {doc?.gap ?? "No internal documentation record."}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function ObservationList({ component }: { component: Component }) {
+  return (
+    <div className="observation-list">
+      {component.observations.length ? (
+        component.observations.map((item, index) => (
+          <div className="observation-row" key={`${item.dimension}-${index}`}>
+            <span>{item.dimension}</span>
+            <span className="observation-state unknown">
+              <i />
+              {item.state.replaceAll("_", " ")}
+            </span>
+          </div>
+        ))
+      ) : (
+        <div className="detail-muted">No status observation was collected.</div>
+      )}
+    </div>
+  );
+}
+
+function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: SnapshotSource }) {
+  const [history, setHistory] = useState<
+    Array<{
+      id: string;
+      capturedAt: string;
+      assessmentStatus: string;
+      componentCount: number;
+      relationshipCount: number;
+    }>
+  >([]);
+  const [baseId, setBaseId] = useState("");
+  const [diff, setDiff] = useState<{
+    added: string[];
+    removed: string[];
+    changed: Array<{ id: string; fields: string[] }>;
+  } | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    source
+      .listHistory?.(snapshot.projectId)
+      .then((items) => {
+        if (active) setHistory(items);
+      })
+      .catch((cause: unknown) => {
+        if (active)
+          setError(cause instanceof Error ? cause.message : "Snapshot history is unavailable.");
+      });
+    return () => {
+      active = false;
+    };
+  }, [snapshot.projectId, source]);
+  const choices = history.filter((item) => item.id !== snapshot.id);
+  const compare = async () => {
+    try {
+      if (!source.compareSnapshots || !baseId) return;
+      setError("");
+      setDiff(await source.compareSnapshots(snapshot.id, baseId));
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Snapshot comparison failed.");
+    }
+  };
+  return (
+    <section className="assessment-view">
+      <div className="view-toolbar">
+        <div>
+          <h2>Compare with an earlier snapshot</h2>
+          <p>
+            Stable component, relationship, and suggestion identifiers determine the change list.
+          </p>
+        </div>
+        <div className="export-actions">
+          <label className="layer-select">
+            <span className="sr-only">Earlier snapshot</span>
+            <select value={baseId} onChange={(event) => setBaseId(event.target.value)}>
+              <option value="">Choose a snapshot</option>
+              {choices.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {new Date(item.capturedAt).toLocaleString()} · {item.componentCount} objects
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="soft-button"
+            disabled={!baseId || !source.compareSnapshots}
+            onClick={() => void compare()}
+          >
+            Compare
+          </button>
+        </div>
+      </div>
+      {snapshot.demo && (
+        <div className="empty-state compact-empty">
+          <GitBranch size={22} />
+          <strong>Demo snapshots are not persisted</strong>
+          <span>Run two local scans to compare project history.</span>
+        </div>
+      )}
+      {error && (
+        <p className="action-notice" role="status">
+          {error}
+        </p>
+      )}
+      {!snapshot.demo && choices.length === 0 && (
+        <div className="empty-state compact-empty">
+          <GitBranch size={22} />
+          <strong>No earlier snapshots yet</strong>
+          <span>Run another scan after your next repository change to create a comparison.</span>
+        </div>
+      )}
+      {diff && (
+        <>
+          <div className="assessment-grid">
+            <article className="panel-card assessment-card">
+              <span className="eyebrow">ADDED</span>
+              <h3>{diff.added.length}</h3>
+            </article>
+            <article className="panel-card assessment-card">
+              <span className="eyebrow">REMOVED</span>
+              <h3>{diff.removed.length}</h3>
+            </article>
+            <article className="panel-card assessment-card">
+              <span className="eyebrow">CHANGED</span>
+              <h3>{diff.changed.length}</h3>
+            </article>
+          </div>
+          <div className="panel-card assessment-card">
+            <h3>Changed object details</h3>
+            {[
+              ...diff.added.map((id) => ({ id, state: "Added", fields: [] })),
+              ...diff.removed.map((id) => ({ id, state: "Removed", fields: [] })),
+              ...diff.changed.map((item) => ({ ...item, state: "Changed" })),
+            ].map((item) => (
+              <div className="observation-row" key={`${item.state}-${item.id}`}>
+                <strong>
+                  {item.state}: {item.id}
+                </strong>
+                <span>{item.fields.join(", ")}</span>
+              </div>
+            ))}
+            {diff.added.length + diff.removed.length + diff.changed.length === 0 && (
+              <p>No changes between these snapshots.</p>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+  helper,
+  icon: Icon,
+  tone,
+  trend,
+}: {
+  label: string;
+  value: number;
+  helper: string;
+  icon: typeof Boxes;
+  tone: string;
+  trend: string;
 }) {
   return (
     <article className="metric-card">
-      <div className={`metric-icon ${tone}`}><Icon size={17} strokeWidth={1.8} aria-hidden="true" /></div>
-      <div className="metric-trend"><span className={`trend-marker ${tone}`}><ArrowUpRight size={12} /></span>{trend}</div>
-      <div className="metric-main"><strong>{value}</strong><span>{label}</span></div>
+      <div className={`metric-icon ${tone}`}>
+        <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
+      </div>
+      <div className="metric-trend">
+        <span className={`trend-marker ${tone}`}>
+          <ArrowUpRight size={12} />
+        </span>
+        {trend}
+      </div>
+      <div className="metric-main">
+        <strong>{value}</strong>
+        <span>{label}</span>
+      </div>
       <div className="metric-helper">{helper}</div>
     </article>
   );
 }
 
-function InventoryView({ components, snapshot, selectedId, onSelect, layer, onLayerChange, total }: {
+function InventoryView({
+  components,
+  snapshot,
+  selectedId,
+  onSelect,
+  layer,
+  onLayerChange,
+  total,
+}: {
   components: Component[];
   snapshot: Snapshot;
   selectedId: string | null;
@@ -370,43 +1234,161 @@ function InventoryView({ components, snapshot, selectedId, onSelect, layer, onLa
     () => new Map(snapshot.documentation.map((record) => [record.componentId, record.status])),
     [snapshot.documentation],
   );
-  const sorted = useMemo(() => [...components].sort((a, b) => a.name.localeCompare(b.name)), [components]);
+  const sorted = useMemo(
+    () => [...components].sort((a, b) => a.name.localeCompare(b.name)),
+    [components],
+  );
   return (
     <section className="inventory-section panel-card">
       <div className="inventory-toolbar">
-        <div><div className="section-title-row"><h2>All components</h2><span className="section-count">{components.length} / {total}</span></div><p>Exact object totals are independent of map filters and grouping.</p></div>
-        <label className="layer-select"><ListFilter size={14} /><span className="sr-only">Filter inventory by layer</span><select value={layer} onChange={(event) => onLayerChange(event.target.value as LayerFilter)}><option value="all">All layers</option>{["frontend", "backend", "testing", "data", "delivery", "shared", "external"].map((value) => <option key={value} value={value}>{value[0]!.toUpperCase() + value.slice(1)}</option>)}</select><ChevronDown size={13} /></label>
+        <div>
+          <div className="section-title-row">
+            <h2>All components</h2>
+            <span className="section-count">
+              {components.length} / {total}
+            </span>
+          </div>
+          <p>Exact object totals are independent of map filters and grouping.</p>
+        </div>
+        <label className="layer-select">
+          <ListFilter size={14} />
+          <span className="sr-only">Filter inventory by layer</span>
+          <select
+            value={layer}
+            onChange={(event) => onLayerChange(event.target.value as LayerFilter)}
+          >
+            <option value="all">All layers</option>
+            {["frontend", "backend", "testing", "data", "delivery", "shared", "external"].map(
+              (value) => (
+                <option key={value} value={value}>
+                  {value[0]!.toUpperCase() + value.slice(1)}
+                </option>
+              ),
+            )}
+          </select>
+          <ChevronDown size={13} />
+        </label>
       </div>
-      {sorted.length === 0 ? <div className="empty-state compact-empty"><Search size={23} /><strong>Nothing found</strong><span>Clear your search or choose another layer.</span></div> : (
-        <div className="table-wrap"><table className="inventory-table"><thead><tr><th>COMPONENT</th><th>TYPE</th><th>LAYER</th><th>VERSION</th><th>STATUS</th><th>DOCUMENTATION</th><th><span className="sr-only">Open component</span></th></tr></thead><tbody>
-          {sorted.map((component) => {
-            const version = component.versions.find((item) => item.facet === "resolved") ?? component.versions.find((item) => item.facet === "declared");
-            const state = component.observations.find((item) => item.dimension === "health")?.state ?? "not observed";
-            const doc = documentation.get(component.id) ?? "undocumented";
-            return <tr className={selectedId === component.id ? "selected-row" : ""} key={component.id} onClick={() => onSelect(component.id)} tabIndex={0} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onSelect(component.id); } }}>
-              <td><div className="component-cell"><span className={`table-kind-icon ${component.layer}`}><ComponentGlyph kind={component.kind} /></span><span><strong>{component.name}</strong><small>{component.locator}</small></span></div></td>
-              <td><span className="plain-type">{component.kind.replaceAll("_", " ")}</span></td>
-              <td><span className={`layer-label ${component.layer}`}>{component.layer}</span></td>
-              <td><span className="version-label">{version?.value ?? "—"}</span></td>
-              <td><StatusPill state={state} /></td>
-              <td><DocumentationPill state={doc} /></td>
-              <td><button className="row-open" onClick={() => onSelect(component.id)} aria-label={`Inspect ${component.name}`}><ArrowRight size={15} /></button></td>
-            </tr>;
-          })}
-        </tbody></table></div>
+      {sorted.length === 0 ? (
+        <div className="empty-state compact-empty">
+          <Search size={23} />
+          <strong>Nothing found</strong>
+          <span>Clear your search or choose another layer.</span>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="inventory-table">
+            <thead>
+              <tr>
+                <th>COMPONENT</th>
+                <th>TYPE</th>
+                <th>LAYER</th>
+                <th>VERSION</th>
+                <th>STATUS</th>
+                <th>DOCUMENTATION</th>
+                <th>
+                  <span className="sr-only">Open component</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((component) => {
+                const version =
+                  component.versions.find((item) => item.facet === "resolved") ??
+                  component.versions.find((item) => item.facet === "declared");
+                const state =
+                  component.observations.find((item) => item.dimension === "health")?.state ??
+                  "not observed";
+                const doc = documentation.get(component.id) ?? "undocumented";
+                return (
+                  <tr
+                    className={selectedId === component.id ? "selected-row" : ""}
+                    key={component.id}
+                    onClick={() => onSelect(component.id)}
+                    tabIndex={0}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onSelect(component.id);
+                      }
+                    }}
+                  >
+                    <td>
+                      <div className="component-cell">
+                        <span className={`table-kind-icon ${component.layer}`}>
+                          <ComponentGlyph kind={component.kind} />
+                        </span>
+                        <span>
+                          <strong>{component.name}</strong>
+                          <small>{component.locator}</small>
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="plain-type">{component.kind.replaceAll("_", " ")}</span>
+                    </td>
+                    <td>
+                      <span className={`layer-label ${component.layer}`}>{component.layer}</span>
+                    </td>
+                    <td>
+                      <span className="version-label">{version?.value ?? "—"}</span>
+                    </td>
+                    <td>
+                      <StatusPill state={state} />
+                    </td>
+                    <td>
+                      <DocumentationPill state={doc} />
+                    </td>
+                    <td>
+                      <button
+                        className="row-open"
+                        onClick={() => onSelect(component.id)}
+                        aria-label={`Inspect ${component.name}`}
+                      >
+                        <ArrowRight size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
-      <div className="inventory-bottom-note"><span><Database size={13} /> Versions stay separated by evidence source.</span><span>Showing {sorted.length} of {total} components</span></div>
+      <div className="inventory-bottom-note">
+        <span>
+          <Database size={13} /> Versions stay separated by evidence source.
+        </span>
+        <span>
+          Showing {sorted.length} of {total} components
+        </span>
+      </div>
     </section>
   );
 }
 
 function StatusPill({ state }: { state: string }) {
-  const mapped = state === "healthy" || state === "passed" ? "positive" : state === "unhealthy" || state === "failed" ? "negative" : "unknown";
-  return <span className={`status-pill ${mapped}`}><i />{state.replaceAll("_", " ")}</span>;
+  const mapped =
+    state === "healthy" || state === "passed"
+      ? "positive"
+      : state === "unhealthy" || state === "failed"
+        ? "negative"
+        : "unknown";
+  return (
+    <span className={`status-pill ${mapped}`}>
+      <i />
+      {state.replaceAll("_", " ")}
+    </span>
+  );
 }
 
 function DocumentationPill({ state }: { state: string }) {
-  return <span className={`docs-pill ${state}`}><i />{state}</span>;
+  return (
+    <span className={`docs-pill ${state}`}>
+      <i />
+      {state}
+    </span>
+  );
 }
 
 function ComponentGlyph({ kind }: { kind: string }) {
@@ -418,10 +1400,49 @@ function ComponentGlyph({ kind }: { kind: string }) {
   return <FileCode2 size={15} />;
 }
 
-function PipelineNode({ icon: Icon, name, detail, status }: { icon: typeof Database; name: string; detail: string; status: string }) {
-  return <div className={`pipeline-node ${status}`}><span className="pipeline-node-icon"><Icon size={15} /></span><strong>{name}</strong><small>{detail}</small></div>;
+function PipelineNode({
+  icon: Icon,
+  name,
+  detail,
+  status,
+}: {
+  icon: typeof Database;
+  name: string;
+  detail: string;
+  status: string;
+}) {
+  return (
+    <div className={`pipeline-node ${status}`}>
+      <span className="pipeline-node-icon">
+        <Icon size={15} />
+      </span>
+      <strong>{name}</strong>
+      <small>{detail}</small>
+    </div>
+  );
 }
 
-function SuggestionPreview({ category, title, priority, tone }: { category: string; title: string; priority: string; tone: string }) {
-  return <div className="suggestion-preview-row"><span className={`category-mark ${tone}`}>{category.slice(0, 1)}</span><span className="suggestion-copy"><strong>{title}</strong><small>{category} <i /> synthetic evidence</small></span><span className={`priority-pill ${priority.toLowerCase()}`}>{priority}</span></div>;
+function SuggestionPreview({
+  category,
+  title,
+  priority,
+  tone,
+}: {
+  category: string;
+  title: string;
+  priority: string;
+  tone: string;
+}) {
+  return (
+    <div className="suggestion-preview-row">
+      <span className={`category-mark ${tone}`}>{category.slice(0, 1)}</span>
+      <span className="suggestion-copy">
+        <strong>{title}</strong>
+        <small>
+          {category} <i /> synthetic evidence
+        </small>
+      </span>
+      <span className={`priority-pill ${priority.toLowerCase()}`}>{priority}</span>
+    </div>
+  );
 }
