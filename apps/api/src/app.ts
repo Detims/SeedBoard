@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from "fastify";
 import type { Snapshot } from "@modernizer/contracts";
+import { exportBacklogMarkdown, exportDocumentationAppendix, exportSnapshotJson } from "@modernizer/docs";
 import {
   type LayoutInput,
   ModernizerStore,
@@ -8,16 +9,8 @@ import {
   type ScanJob,
   type SnapshotSummary,
 } from "./storage.js";
-import {
-  LocalRequestSecurity,
-  localSecurityConstants,
-  type SecurityDecision,
-} from "./security.js";
-import {
-  ScanQueue,
-  ScannerUnavailableError,
-  type ScanRunner,
-} from "./scanQueue.js";
+import { LocalRequestSecurity, localSecurityConstants, type SecurityDecision } from "./security.js";
+import { ScanQueue, ScannerUnavailableError, type ScanRunner } from "./scanQueue.js";
 
 export type AppOptions = {
   store?: ModernizerStore;
@@ -49,12 +42,16 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     throw new TypeError("PORT must be an integer between 1 and 65535.");
   }
   const store = options.store ?? new ModernizerStore();
-  const queue = new ScanQueue({ store, runner: options.scanner, recover: true });
+  const queue = new ScanQueue({
+    store,
+    ...(options.scanner ? { runner: options.scanner } : {}),
+    recover: true,
+  });
   const security = new LocalRequestSecurity({
     port,
-    secret: options.sessionKey,
-    secureCookies: options.secureCookies,
-    now: options.rateClock,
+    ...(options.sessionKey ? { secret: options.sessionKey } : {}),
+    ...(options.secureCookies === undefined ? {} : { secureCookies: options.secureCookies }),
+    ...(options.rateClock ? { now: options.rateClock } : {}),
   });
   const app = Fastify({ logger: false, bodyLimit: 1_048_576, requestIdHeader: false });
 
@@ -75,52 +72,86 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
   app.setErrorHandler((error, request, reply) => {
     if (error instanceof ResourceNotFoundError) {
-      return sendError(reply, request, {
-        allowed: false,
-        statusCode: 403,
-        code: "NOT_FOUND",
-        message: error.message,
-      }, 404);
+      return sendError(
+        reply,
+        request,
+        {
+          allowed: false,
+          statusCode: 403,
+          code: "NOT_FOUND",
+          message: error.message,
+        },
+        404,
+      );
     }
     if (error instanceof ScanConflictError) {
-      return sendError(reply, request, {
-        allowed: false,
-        statusCode: 400,
-        code: "CONFLICT",
-        message: error.message,
-      }, 409);
+      return sendError(
+        reply,
+        request,
+        {
+          allowed: false,
+          statusCode: 400,
+          code: "CONFLICT",
+          message: error.message,
+        },
+        409,
+      );
     }
     if (error instanceof ScannerUnavailableError) {
-      return sendError(reply, request, {
+      return sendError(
+        reply,
+        request,
+        {
+          allowed: false,
+          statusCode: 400,
+          code: "SCANNER_NOT_CONFIGURED",
+          message: "No scan adapter is configured.",
+        },
+        503,
+        true,
+      );
+    }
+    const statusCode =
+      error instanceof Error && "statusCode" in error ? error.statusCode : undefined;
+    if (error instanceof TypeError || statusCode === 400) {
+      return sendError(
+        reply,
+        request,
+        {
+          allowed: false,
+          statusCode: 400,
+          code: "BAD_REQUEST",
+          message: error instanceof TypeError ? error.message : "Request validation failed.",
+        },
+        400,
+      );
+    }
+    return sendError(
+      reply,
+      request,
+      {
         allowed: false,
         statusCode: 400,
-        code: "SCANNER_NOT_CONFIGURED",
-        message: "No scan adapter is configured.",
-      }, 503, true);
-    }
-    if (error instanceof TypeError || error.statusCode === 400) {
-      return sendError(reply, request, {
-        allowed: false,
-        statusCode: 400,
-        code: "BAD_REQUEST",
-        message: error instanceof TypeError ? error.message : "Request validation failed.",
-      }, 400);
-    }
-    return sendError(reply, request, {
-      allowed: false,
-      statusCode: 400,
-      code: "INTERNAL_ERROR",
-      message: "The request could not be completed.",
-    }, 500, true);
+        code: "INTERNAL_ERROR",
+        message: "The request could not be completed.",
+      },
+      500,
+      true,
+    );
   });
 
   app.setNotFoundHandler((request, reply) =>
-    sendError(reply, request, {
-      allowed: false,
-      statusCode: 400,
-      code: "NOT_FOUND",
-      message: "Resource not found.",
-    }, 404),
+    sendError(
+      reply,
+      request,
+      {
+        allowed: false,
+        statusCode: 400,
+        code: "NOT_FOUND",
+        message: "Resource not found.",
+      },
+      404,
+    ),
   );
 
   app.get("/api/v1/session", async (request, reply) => {
@@ -136,15 +167,16 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     success(request, { service: "modernizer-api", ready: true }),
   );
 
-  app.get("/api/v1/projects", async (request) =>
-    success(request, store.listProjects()),
-  );
+  app.get("/api/v1/projects", async (request) => success(request, store.listProjects()));
 
-  app.post<{ Params: ProjectIdParams }>("/api/v1/projects/:projectId/scans", async (request, reply) => {
-    const job = queue.enqueue(request.params.projectId);
-    reply.code(202);
-    return success(request, scanJobPayload(job));
-  });
+  app.post<{ Params: ProjectIdParams }>(
+    "/api/v1/projects/:projectId/scans",
+    async (request, reply) => {
+      const job = queue.enqueue(request.params.projectId);
+      reply.code(202);
+      return success(request, scanJobPayload(job));
+    },
+  );
 
   app.get<{ Params: ScanIdParams }>("/api/v1/scans/:scanId", async (request) => {
     const job = queue.get(request.params.scanId);
@@ -189,18 +221,24 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       if (target.summary.projectId !== base.summary.projectId) {
         throw new ScanConflictError("Snapshots must belong to the same project.");
       }
-      return success(request, diffSnapshots(base.summary, base.snapshot, target.summary, target.snapshot));
+      return success(
+        request,
+        diffSnapshots(base.summary, base.snapshot, target.summary, target.snapshot),
+      );
     },
   );
 
-  app.get<{ Params: LayoutParams }>("/api/v1/projects/:projectId/layouts/:name", async (request) => {
-    if (!store.getProject(request.params.projectId)) {
-      throw new ResourceNotFoundError("Project not found.");
-    }
-    const layout = store.getLayout(request.params.projectId, request.params.name);
-    if (!layout) throw new ResourceNotFoundError("Layout not found.");
-    return success(request, layout);
-  });
+  app.get<{ Params: LayoutParams }>(
+    "/api/v1/projects/:projectId/layouts/:name",
+    async (request) => {
+      if (!store.getProject(request.params.projectId)) {
+        throw new ResourceNotFoundError("Project not found.");
+      }
+      const layout = store.getLayout(request.params.projectId, request.params.name);
+      if (!layout) throw new ResourceNotFoundError("Layout not found.");
+      return success(request, layout);
+    },
+  );
 
   app.put<{ Params: LayoutParams; Body: unknown }>(
     "/api/v1/projects/:projectId/layouts/:name",
@@ -236,17 +274,13 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       if (format === "json") {
         reply.type("application/json; charset=utf-8");
         reply.header("Content-Disposition", 'attachment; filename="modernizer-snapshot.json"');
-        return JSON.stringify(result.snapshot);
+        return exportSnapshotJson(result.snapshot);
       }
       reply.type("text/markdown; charset=utf-8");
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="modernizer-${format}.md"`,
-      );
-      const content =
-        format === "appendix"
-          ? renderAppendix(result.snapshot)
-          : renderBacklog(result.snapshot, store);
+      reply.header("Content-Disposition", `attachment; filename="modernizer-${format}.md"`);
+      const content = format === "appendix"
+        ? exportDocumentationAppendix(result.snapshot)
+        : exportBacklogMarkdown(result.snapshot);
       return content;
     },
   );
@@ -273,11 +307,7 @@ export function scanJobPayload(job: ScanJob) {
   };
 }
 
-function success<T>(
-  request: FastifyRequest,
-  data: T,
-  nextCursor?: string | null,
-): ApiSuccess<T> {
+function success<T>(request: FastifyRequest, data: T, nextCursor?: string | null): ApiSuccess<T> {
   return {
     data,
     meta: {
@@ -291,7 +321,7 @@ function sendError(
   reply: FastifyReply,
   request: FastifyRequest,
   error: SecurityDecision,
-  statusCode = error.statusCode,
+  statusCode: number = error.statusCode,
   retryable = false,
 ): FastifyReply {
   const body: ApiError = {
@@ -419,12 +449,11 @@ function diffSnapshots(
     .flatMap((entity) => {
       const prior = baseMap.get(entity.id);
       if (!prior) return [];
-      const fields = new Set([
-        ...Object.keys(prior.values),
-        ...Object.keys(entity.values),
-      ]);
+      const fields = new Set([...Object.keys(prior.values), ...Object.keys(entity.values)]);
       const differences = [...fields]
-        .filter((field) => JSON.stringify(prior.values[field]) !== JSON.stringify(entity.values[field]))
+        .filter(
+          (field) => JSON.stringify(prior.values[field]) !== JSON.stringify(entity.values[field]),
+        )
         .sort();
       return differences.length ? [{ id: entity.id, fields: differences }] : [];
     })
@@ -455,11 +484,13 @@ function snapshotEntities(snapshot: Snapshot): DiffEntity[] {
   ];
 }
 
-function renderBacklog(
-  snapshot: Snapshot,
-  store: ModernizerStore,
-): string {
-  const lines = ["# Modernization backlog", "", "_Snapshot export; no changes have been applied._", ""];
+function renderBacklog(snapshot: Snapshot, store: ModernizerStore): string {
+  const lines = [
+    "# Modernization backlog",
+    "",
+    "_Snapshot export; no changes have been applied._",
+    "",
+  ];
   for (const suggestion of snapshot.suggestions) {
     const decision = store.getDecision(snapshot.projectId, suggestion.fingerprint);
     const title = cleanMarkdown(suggestion.title);
@@ -511,9 +542,7 @@ function renderAppendix(snapshot: Snapshot): string {
       lines.push(`- Official documentation: [${title}](${safeMarkdownUrl(reference.url)})`);
     }
     if (record.internalPaths.length) {
-      lines.push(
-        ...record.internalPaths.map((path) => `- Internal guide: ${path}`),
-      );
+      lines.push(...record.internalPaths.map((path) => `- Internal guide: ${path}`));
     }
     if (record.gap) lines.push(`- Documentation gap: ${cleanMarkdown(record.gap)}`);
     lines.push("");
@@ -534,4 +563,3 @@ function safeMarkdownUrl(value: string): string {
   parsed.search = "";
   return parsed.toString().replace(/[()]/g, (character) => (character === "(" ? "%28" : "%29"));
 }
-

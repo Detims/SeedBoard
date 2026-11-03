@@ -32,6 +32,15 @@ importers:
       '@modernizer/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@modernizer/discovery':
+        specifier: workspace:*
+        version: link:../../packages/discovery
+      '@modernizer/docs':
+        specifier: workspace:*
+        version: link:../../packages/docs
+      '@modernizer/rules':
+        specifier: workspace:*
+        version: link:../../packages/rules
       fastify:
         specifier: 5.12.7
         version: 5.12.7

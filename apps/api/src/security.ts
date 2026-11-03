@@ -56,6 +56,9 @@ export class LocalRequestSecurity {
     if (input.host !== this.#host) {
       return denied(403, "HOST_REJECTED", "Request host is not allowed.");
     }
+    if (!isLoopback(input.remoteAddress)) {
+      return denied(403, "HOST_REJECTED", "Only loopback requests are allowed.");
+    }
     if (input.origin && !this.#isAllowedOrigin(input.origin)) {
       return denied(403, "ORIGIN_REJECTED", "Request origin is not allowed.");
     }
@@ -69,7 +72,11 @@ export class LocalRequestSecurity {
     if (this.#isBootstrap(input.url)) return allowed();
     if (this.#isHealth(input.url)) return allowed();
     if (!this.#hasSession(input.cookie)) {
-      return denied(403, "SESSION_REQUIRED", "Open the local Modernizer app before making requests.");
+      return denied(
+        403,
+        "SESSION_REQUIRED",
+        "Open the local Modernizer app before making requests.",
+      );
     }
     if (input.csrfHeader !== csrfHeaderValue) {
       return denied(403, "REQUEST_HEADER_REQUIRED", "A same-origin request header is required.");
@@ -127,9 +134,7 @@ export class LocalRequestSecurity {
     ) {
       return false;
     }
-    const expected = createHmac("sha256", this.#key)
-      .update(`${issuedText}.${nonce}`)
-      .digest();
+    const expected = createHmac("sha256", this.#key).update(`${issuedText}.${nonce}`).digest();
     let received: Buffer;
     try {
       received = Buffer.from(receivedSignature, "base64url");
@@ -154,6 +159,15 @@ export class LocalRequestSecurity {
     current.count += 1;
     return current.count <= 300;
   }
+}
+
+function isLoopback(address: string | undefined): boolean {
+  return (
+    address === "127.0.0.1" ||
+    address === "::1" ||
+    address === "::ffff:127.0.0.1" ||
+    address === "::ffff:7f00:1"
+  );
 }
 
 function allowed(): SecurityDecision {

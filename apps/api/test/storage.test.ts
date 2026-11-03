@@ -5,10 +5,7 @@ import { fileURLToPath } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Snapshot } from "@modernizer/contracts";
-import {
-  ModernizerStore,
-  ScanConflictError,
-} from "../src/storage.js";
+import { ModernizerStore, ScanConflictError } from "../src/storage.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const demo = JSON.parse(
@@ -83,9 +80,9 @@ describe("Modernizer SQLite storage", () => {
       stage: "interrupted",
       snapshotId: null,
     });
-    expect(() =>
-      store.updateScanJob(queued.id, { state: "running", stage: "resume" }),
-    ).toThrow(ScanConflictError);
+    expect(() => store.updateScanJob(queued.id, { state: "running", stage: "resume" })).toThrow(
+      ScanConflictError,
+    );
   });
 
   it("publishes snapshot and terminal state in one transaction", async () => {
@@ -113,11 +110,17 @@ describe("Modernizer SQLite storage", () => {
     const project = await register();
     const job = store.createScanJob(project.id);
     store.updateScanJob(job.id, { state: "running" });
-    const summary = store.publishSnapshot(job.id, snapshotFor(project.id, "snapshot-partial", true));
+    const summary = store.publishSnapshot(
+      job.id,
+      snapshotFor(project.id, "snapshot-partial", true),
+    );
     expect(summary.assessmentStatus).toBe("partial");
-    expect(store.getSnapshot("snapshot-partial")?.snapshot.components.find(
-      (component) => component.kind === "database",
-    )?.observations.some((observation) => observation.state === "unknown")).toBe(true);
+    expect(
+      store
+        .getSnapshot("snapshot-partial")
+        ?.snapshot.components.find((component) => component.kind === "database")
+        ?.observations.some((observation) => observation.state === "unknown"),
+    ).toBe(true);
   });
 
   it("does not publish semantically invalid snapshots or replace prior history", async () => {
@@ -137,6 +140,16 @@ describe("Modernizer SQLite storage", () => {
     expect(store.getScanJob(second.id)?.state).toBe("running");
   });
 
+  it("rejects unsafe external URLs before persisting a snapshot", async () => {
+    const project = await register();
+    const job = store.createScanJob(project.id);
+    store.updateScanJob(job.id, { state: "running" });
+    const unsafe = snapshotFor(project.id, "snapshot-url");
+    unsafe.evidence[0]!.url = "https://example.test/?token=private";
+    expect(() => store.publishSnapshot(job.id, unsafe)).toThrow(/cannot contain credentials/);
+    expect(store.listSnapshots(project.id, { limit: 10 }).snapshots).toHaveLength(0);
+  });
+
   it("keeps snapshots immutable and persists project history when reopened", async () => {
     const project = await register();
     const job = store.createScanJob(project.id);
@@ -146,9 +159,9 @@ describe("Modernizer SQLite storage", () => {
 
     const raw = new DatabaseSync(join(directory, "state.sqlite"));
     expect(() =>
-      raw.prepare("UPDATE snapshots SET snapshot_json = '{}' WHERE id = ?").run(
-        "snapshot-immutable",
-      ),
+      raw
+        .prepare("UPDATE snapshots SET snapshot_json = '{}' WHERE id = ?")
+        .run("snapshot-immutable"),
     ).toThrow(/immutable/);
     raw.close();
 

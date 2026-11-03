@@ -211,7 +211,7 @@ describe("local snapshot and decision APIs", () => {
     });
     expect(appendix.statusCode).toBe(200);
     expect(appendix.headers["content-type"]).toContain("text/markdown");
-    expect(appendix.body).toContain("Documentation appendix");
+    expect(appendix.body.toLowerCase()).toContain("documentation appendix");
     expect(appendix.body).not.toContain(root);
   });
 

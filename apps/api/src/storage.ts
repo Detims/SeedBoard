@@ -107,7 +107,7 @@ function nullableInteger(row: Row, column: string): number | null {
   return value;
 }
 
-function jsonList<T>(value: SQLOutputValue): T {
+function jsonList<T>(value: SQLOutputValue | undefined): T {
   if (typeof value !== "string") throw new TypeError("Expected JSON text.");
   return JSON.parse(value) as T;
 }
@@ -202,7 +202,9 @@ export class ModernizerStore {
     const rootHash = createHash("sha256").update(identity).digest("hex");
     const id = `project-${rootHash.slice(0, 32)}`;
     const now = this.#clock();
-    const name = normalizeName(input.name ?? root.split(/[\\/]/).filter(Boolean).at(-1) ?? "Project");
+    const name = normalizeName(
+      input.name ?? root.split(/[\\/]/).filter(Boolean).at(-1) ?? "Project",
+    );
 
     this.#db
       .prepare(
@@ -231,9 +233,7 @@ export class ModernizerStore {
   getProject(projectId: string): RegisteredProject | null {
     const row = rowOrNull(
       this.#db
-        .prepare(
-          "SELECT id, name, root_path, created_at, updated_at FROM projects WHERE id = ?",
-        )
+        .prepare("SELECT id, name, root_path, created_at, updated_at FROM projects WHERE id = ?")
         .get(projectId) as Row | undefined,
     );
     if (!row) return null;
@@ -349,6 +349,7 @@ export class ModernizerStore {
   publishSnapshot(jobId: string, snapshotInput: unknown): SnapshotSummary {
     assertSnapshot(snapshotInput);
     const snapshot = snapshotInput as Snapshot;
+    assertSafeSnapshotUrls(snapshot);
     const job = this.getScanJob(jobId);
     if (!job) throw new ResourceNotFoundError("Scan not found.");
     if (job.state !== "running") throw new ScanConflictError("Only a running scan can publish.");
@@ -421,7 +422,13 @@ export class ModernizerStore {
                AND (captured_at < ? OR (captured_at = ? AND id < ?))
              ORDER BY captured_at DESC, id DESC LIMIT ?`,
           )
-          .all(projectId, cursor.capturedAt, cursor.capturedAt, cursor.id, options.limit + 1) as Row[])
+          .all(
+            projectId,
+            cursor.capturedAt,
+            cursor.capturedAt,
+            cursor.id,
+            options.limit + 1,
+          ) as Row[])
       : (this.#db
           .prepare(
             `SELECT id, project_id, captured_at, assessment_status, component_count,
@@ -435,7 +442,8 @@ export class ModernizerStore {
     const last = page.at(-1);
     return {
       snapshots: page,
-      nextCursor: hasNext && last ? encodeCursor({ capturedAt: last.capturedAt, id: last.id }) : null,
+      nextCursor:
+        hasNext && last ? encodeCursor({ capturedAt: last.capturedAt, id: last.id }) : null,
     };
   }
 
@@ -460,18 +468,15 @@ export class ModernizerStore {
     const snapshotPage = this.listSnapshots(projectId, { limit: 1 }).snapshots;
     const latest = snapshotPage[0] ? this.getSnapshot(snapshotPage[0].id)?.snapshot : undefined;
     const componentIds = new Set(latest?.components.map(({ id }) => id) ?? []);
-    for (const id of [
-      ...Object.keys(layout.positions),
-      ...layout.pinnedIds,
-    ]) {
+    for (const id of [...Object.keys(layout.positions), ...layout.pinnedIds]) {
       if (!componentIds.has(id)) {
         throw new TypeError(`Layout references unknown component "${id}".`);
       }
     }
     const prior = rowOrNull(
-      this.#db.prepare("SELECT version FROM layouts WHERE project_id = ? AND name = ?").get(projectId, name) as
-        | Row
-        | undefined,
+      this.#db
+        .prepare("SELECT version FROM layouts WHERE project_id = ? AND name = ?")
+        .get(projectId, name) as Row | undefined,
     );
     const version = prior ? integer(prior, "version") + 1 : 1;
     const updatedAt = this.#clock();
@@ -607,8 +612,39 @@ export class ModernizerStore {
   }
 }
 
+function assertSafeSnapshotUrls(snapshot: Snapshot): void {
+  const urls = [
+    ...snapshot.evidence.flatMap((item) => (item.url ? [item.url] : [])),
+    ...snapshot.documentation.flatMap((record) =>
+      record.officialReferences.map((reference) => reference.url),
+    ),
+  ];
+  for (const value of urls) {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new TypeError("Snapshot contains an invalid external URL.");
+    }
+    if (
+      (url.protocol !== "http:" && url.protocol !== "https:") ||
+      url.username ||
+      url.password ||
+      url.search ||
+      url.hash
+    ) {
+      throw new TypeError(
+        "Snapshot external URLs cannot contain credentials, queries, or fragments.",
+      );
+    }
+  }
+}
+
 function normalizeName(value: string): string {
-  const name = value.trim().replace(/[\u0000-\u001f\u007f]/g, "").slice(0, 200);
+  const name = value
+    .trim()
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .slice(0, 200);
   if (name.length === 0) throw new TypeError("Project name must contain a visible character.");
   return name;
 }

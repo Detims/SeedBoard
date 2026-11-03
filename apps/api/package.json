@@ -20,6 +20,9 @@
   },
   "dependencies": {
     "@modernizer/contracts": "workspace:*",
+    "@modernizer/discovery": "workspace:*",
+    "@modernizer/docs": "workspace:*",
+    "@modernizer/rules": "workspace:*",
     "fastify": "5.12.7"
   }
 }

@@ -17,10 +17,7 @@ export type ScanContext = {
   reportProgress(progress: ScanProgress & { stage: string }): void;
 };
 
-export type ScanRunner = (
-  project: RegisteredProject,
-  context: ScanContext,
-) => Promise<ScanOutcome>;
+export type ScanRunner = (project: RegisteredProject, context: ScanContext) => Promise<ScanOutcome>;
 
 type QueueItem = { jobId: string; abortController: AbortController };
 
@@ -295,4 +292,3 @@ export function createEmptySnapshot(project: RegisteredProject): Snapshot {
     documentation: [],
   };
 }
-
