@@ -22,7 +22,7 @@
 
 - The appendix keeps one row per component and names unresolved references or review gaps.
 - Registry links in Modernizer's own machine-readable lockfile inventory are package lookup pages, not individually reviewed vendor guides.
-- Add/review an internal guide using [the service template](../templates/service.md); do not invent unknown operations or credentials.
+- Add and review an internal guide for the component; keep unknown operations and credentials explicitly undocumented.
 
 ## Export or restore problems
 
