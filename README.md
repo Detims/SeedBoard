@@ -2,7 +2,7 @@
 
 An evidence-backed dashboard for understanding an application's architecture, dependencies, environments, databases, and delivery pipeline before modernization work.
 
-**Implementation status: T0 foundation in progress.** The blueprints and synthetic fixtures are in place. T0 is adding the pinned workspace, schema-derived contract package, API contract, and loopback API skeleton. Scanning, persistence, providers, and dashboard screens belong to later work packages and are not complete yet.
+**Implementation status: T0–T7 MVP implemented.** The local workspace now includes bounded static discovery, SQLite-backed immutable snapshots, evidence-gated suggestions, sanitized documentation exports, a connected React dashboard, and Windows/Linux CI gates. GitHub live-run lookups, deployed-version checks, live database inspection, and other language ecosystems remain deferred.
 
 ## Read first
 
@@ -30,14 +30,16 @@ An evidence-backed dashboard for understanding an application's architecture, de
 | [Empty and partial snapshots](fixtures/) | Synthetic contract cases for the first implementation slices |
 | [Service documentation template](docs/templates/service.md) | A page for every core or minor integration |
 | [Agent handoff template](docs/templates/agent-handoff.md) | Evidence required from each completed work package |
+| [Dependency inventory](docs/dependency-inventory.json) | Generated exact third-party package inventory from the lockfile |
 | [T0 handoff](docs/handoffs/T0.md) | Foundation implementation and verification record |
+| [T1–T7 handoffs](docs/handoffs/) | Checkpoint results, exact checks, and remaining limits |
 
 ## Intended first release
 
-A single-user local application: select a local repository through a CLI, collect metadata without executing project code, and inspect an immutable snapshot in a browser. React/TypeScript presents an interactive architecture graph and inventory; a local API and SQLite store snapshots, scan state, graph layouts, and suggestion decisions. Initial analyzers support Node manifests, npm lockfiles, GitHub workflow declarations, and migration-file inventory. Unknown stacks remain visible as unsupported.
+A single-user local application: register a local repository through the CLI, collect bounded metadata without executing project code, and inspect immutable snapshots in a browser. The graph supports map navigation, search, filters, selection, and stored layouts; inventory, suggestions, CI/environment, data/migration, documentation, comparison, and export views use validated snapshots. Collectors currently support Node manifests, npm lockfiles, GitHub workflow declarations, and migration-file inventory. Unknown stacks remain visible with coverage states rather than fabricated versions or health.
 
-The first implementation task is **T0: foundation and contracts**. Follow the dependency order in the work packages. Do not attempt the whole system in one agent run. The full MVP ends at T7; later live provider features are explicitly separate.
+The MVP work packages T0–T7 are complete. The next package, T8 live-provider enrichment, is deferred and needs separate scope and permissions.
 
 ## First slice commands
 
-Once the pinned dependencies are installed: `pnpm contracts:generate`, `pnpm contracts:check`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm docs:check`, and `pnpm dev`. The current API skeleton only reports Modernizer process readiness. CLI registration, scanning, history, and UI are not yet implemented.
+From PowerShell: `pnpm install --frozen-lockfile`, `pnpm contracts:check`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `pnpm docs:check`, and `pnpm dev`. Open `http://127.0.0.1:5173`; register a project with the CLI command in the local setup guide. Use `?demo=1` for the explicitly labeled synthetic fixture. The API binds to `127.0.0.1:4317`.

@@ -1,40 +1,52 @@
-# Local developer setup
+# Local setup and first scan
 
-This setup runs the Modernizer API skeleton. Repository discovery, storage, and dashboard screens are delivered in later work packages.
+Modernizer runs locally and binds its API and dashboard to loopback. Default scans parse bounded files as data; they do not run the target's scripts, import its modules, call its APIs, or open its database.
 
 ## Requirements
 
-- Node.js 24.22.2 (LTS), selected in the repository's .node-version file.
-- pnpm 12.16.1, pinned in package.json through its packageManager field.
-- Windows 10/11 x64 or arm64 is the initial target. Other platforms should use the same pinned versions.
+- Node.js 24.22.2 from `.node-version`.
+- pnpm 12.16.1 from the root `packageManager` field.
+- Windows 10/11 x64 or arm64, or a current Linux development machine.
 
-The official Node.js release page lists 24.22.2 as LTS. Use the official Windows installer or a Node version manager, then install pnpm 12.16.1 using a supported pnpm installation method. Do not change the global Node or pnpm installation solely for Modernizer if you already use a version manager.
+## Install and start
 
-## Install and run
+From the repository root in PowerShell:
 
-From the repository root in PowerShell, run these commands in order:
+1. `node --version` and `pnpm --version` should report the pinned versions.
+2. `pnpm install --frozen-lockfile --ignore-scripts`.
+3. `pnpm contracts:check`.
+4. `pnpm typecheck`.
+5. `pnpm test`.
+6. `pnpm build`.
+7. `pnpm docs:check`.
+8. `pnpm dev`.
 
-1. `node --version`
-2. `pnpm --version`
-3. `pnpm install --frozen-lockfile`
-4. `pnpm contracts:check`
-5. `pnpm typecheck`
-6. `pnpm test`
-7. `pnpm build`
-8. `pnpm docs:check`
-9. `pnpm dev`
+The API is at `http://127.0.0.1:4317`; the dashboard is at `http://127.0.0.1:5173`. The Vite development proxy forwards only `/api` to the loopback API. The dashboard obtains its short-lived same-origin session itself. Use `http://127.0.0.1:5173/?demo=1` to view the labeled synthetic fixture without registering a repository.
 
-The API binds to 127.0.0.1:4317 by default. Open http://127.0.0.1:4317/api/v1/healthz to inspect Modernizer readiness. PORT can select another local port. Stop the API with Ctrl+C. The root test:e2e command intentionally identifies T7 as its owner until the browser application exists.
+Stop both local processes with Ctrl+C in the terminal running `pnpm dev`.
 
-At this stage, the health response reports only that the Modernizer API process is ready. It says nothing about any assessed application.
+## Register a repository and scan
 
-## Current data location and backup
+In another PowerShell window from the repository root:
 
-T0 has no persistent database or registered repository roots. Do not expect scan history to survive a stop yet. T2 owns the durable data directory, backup and restore procedures, CLI registration, and lifecycle behavior.
+```powershell
+pnpm --filter @modernizer/cli exec node dist/index.js project register "C:\path\to\your\repository" --name "Optional label"
+```
+
+Registration stores the chosen folder as a trusted local root; it does not read its files. Reload the dashboard and choose **Run first scan**. A scan reads eligible metadata within the configured file, byte, depth, and component limits. Unsupported files and incomplete collection remain visible as coverage issues.
+
+To list locally registered projects:
+
+```powershell
+pnpm --filter @modernizer/cli exec node dist/index.js project list
+```
+
+The browser cannot choose or submit a filesystem root. The first version collects Node manifests/npm lockfiles, GitHub workflow YAML, and migration filenames. Provider runs, deployment versions, applied database migration state, and non-Node stacks remain unknown unless an explicit future adapter supplies evidence.
+
+## Local data and backup
+
+By default the SQLite database is stored in `%LOCALAPPDATA%\Modernizer\modernizer.sqlite` on Windows, `~/Library/Application Support/Modernizer/modernizer.sqlite` on macOS, or `$XDG_DATA_HOME/modernizer/modernizer.sqlite` (otherwise `~/.local/share/modernizer/modernizer.sqlite`) on Linux. Set `MODERNIZER_DATA_DIR` before starting the API and CLI to choose another data directory. Read [backup and restore](backup-restore.md) before moving or replacing the database.
 
 ## Troubleshooting
 
-- A Node or pnpm version mismatch means the required pinned runtime is not active. Confirm the version manager honors .node-version.
-- A frozen install requires the committed pnpm-lock.yaml; regenerate it only when intentionally changing package inputs, then review the diff.
-- If port 4317 is already in use, choose a free port with PORT=4318 pnpm dev.
-- If the health endpoint responds but a project scan is not available, that is expected before T1/T2 integration.
+See [the troubleshooting guide](troubleshooting.md) for startup, scan coverage, storage, browser-session, and export issues.

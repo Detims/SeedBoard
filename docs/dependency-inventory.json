@@ -1,0 +1,1382 @@
+{
+  "generatedFrom": "pnpm-lock.yaml",
+  "packageCount": 172,
+  "packages": [
+    {
+      "name": "@apidevtools/json-schema-ref-parser",
+      "version": "11.9.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@apidevtools/json-schema-ref-parser",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/ajv-compiler",
+      "version": "4.0.7",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/ajv-compiler",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/deepmerge",
+      "version": "3.2.4",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/deepmerge",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/error",
+      "version": "4.2.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/error",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/fast-json-stringify-compiler",
+      "version": "5.1.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/fast-json-stringify-compiler",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/forwarded",
+      "version": "3.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/forwarded",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/merge-json-schemas",
+      "version": "0.2.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/merge-json-schemas",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@fastify/proxy-addr",
+      "version": "5.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@fastify/proxy-addr",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@jridgewell/resolve-uri",
+      "version": "3.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@jridgewell/resolve-uri",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@jridgewell/sourcemap-codec",
+      "version": "1.6.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@jridgewell/sourcemap-codec",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@jridgewell/trace-mapping",
+      "version": "0.3.31",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@jridgewell/trace-mapping",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@jsdevtools/ono",
+      "version": "7.1.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@jsdevtools/ono",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@oxc-project/types",
+      "version": "0.156.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@oxc-project/types",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@pinojs/redact",
+      "version": "0.4.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@pinojs/redact",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-android-arm-eabi",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-android-arm-eabi",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-android-arm64",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-android-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-darwin-arm64",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-darwin-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-darwin-x64",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-darwin-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-freebsd-x64",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-freebsd-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-arm-gnueabihf",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-arm-gnueabihf",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-arm64-gnu",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-arm64-gnu",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-arm64-musl",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-arm64-musl",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-ppc64-gnu",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-ppc64-gnu",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-s390x-gnu",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-s390x-gnu",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-gnu",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-x64-gnu",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-linux-x64-musl",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-linux-x64-musl",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-openharmony-arm64",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-openharmony-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-win32-arm64-msvc",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-win32-arm64-msvc",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/binding-win32-x64-msvc",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/binding-win32-x64-msvc",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@rolldown/pluginutils",
+      "version": "1.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@rolldown/pluginutils",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/chai",
+      "version": "5.2.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/chai",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/d3-color",
+      "version": "3.1.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/d3-color",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/d3-drag",
+      "version": "3.0.7",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/d3-drag",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/d3-interpolate",
+      "version": "3.0.4",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/d3-interpolate",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/d3-selection",
+      "version": "3.0.12",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/d3-selection",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/d3-transition",
+      "version": "3.0.9",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/d3-transition",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/d3-zoom",
+      "version": "3.0.9",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/d3-zoom",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/deep-eql",
+      "version": "4.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/deep-eql",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/estree",
+      "version": "1.0.10",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/estree",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/json-schema",
+      "version": "7.0.15",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/json-schema",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/lodash",
+      "version": "4.17.27",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/lodash",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/node",
+      "version": "26.6.6",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/node",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/react",
+      "version": "19.3.0",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/react",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@types/react-dom",
+      "version": "19.3.0",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@types/react-dom",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-aix-ppc64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-aix-ppc64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-darwin-arm64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-darwin-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-darwin-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-darwin-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-freebsd-arm64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-freebsd-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-freebsd-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-freebsd-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-arm",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-arm",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-arm64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-loong64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-loong64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-mips64el",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-mips64el",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-ppc64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-ppc64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-riscv64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-riscv64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-s390x",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-s390x",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-linux-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-linux-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-netbsd-arm64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-netbsd-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-netbsd-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-netbsd-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-openbsd-arm64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-openbsd-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-openbsd-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-openbsd-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-sunos-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-sunos-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-win32-arm64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-win32-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@typescript/typescript-win32-x64",
+      "version": "7.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@typescript/typescript-win32-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "version": "6.1.2",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@vitejs/plugin-react",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@vitest/mocker",
+      "version": "5.1.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@vitest/mocker",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@vitest/spy",
+      "version": "5.1.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@vitest/spy",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@xyflow/react",
+      "version": "12.12.0",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@xyflow/react",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "@xyflow/system",
+      "version": "0.0.83",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/@xyflow/system",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "abstract-logging",
+      "version": "2.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/abstract-logging",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "ajv",
+      "version": "8.20.0",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/ajv",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "ajv-formats",
+      "version": "3.0.1",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/ajv-formats",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "argparse",
+      "version": "2.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/argparse",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "argparse",
+      "version": "3.0.4",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/argparse",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "assertion-error",
+      "version": "2.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/assertion-error",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "atomic-sleep",
+      "version": "1.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/atomic-sleep",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "avvio",
+      "version": "9.3.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/avvio",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "chai",
+      "version": "6.3.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/chai",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "classcat",
+      "version": "5.0.5",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/classcat",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "cookie",
+      "version": "2.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/cookie",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "csstype",
+      "version": "3.2.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/csstype",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-color",
+      "version": "3.1.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-color",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-dispatch",
+      "version": "3.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-dispatch",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-drag",
+      "version": "3.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-drag",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-ease",
+      "version": "3.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-ease",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-interpolate",
+      "version": "3.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-interpolate",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-selection",
+      "version": "3.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-selection",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-timer",
+      "version": "3.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-timer",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-transition",
+      "version": "3.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-transition",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "d3-zoom",
+      "version": "3.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/d3-zoom",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "dequal",
+      "version": "2.0.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/dequal",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "detect-libc",
+      "version": "2.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/detect-libc",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "es-module-lexer",
+      "version": "2.3.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/es-module-lexer",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "estree-walker",
+      "version": "3.0.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/estree-walker",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "expect-type",
+      "version": "1.4.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/expect-type",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fast-decode-uri-component",
+      "version": "1.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fast-decode-uri-component",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fast-deep-equal",
+      "version": "3.1.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fast-deep-equal",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fast-json-stringify",
+      "version": "7.2.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fast-json-stringify",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fast-querystring",
+      "version": "1.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fast-querystring",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fast-uri",
+      "version": "3.1.9",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fast-uri",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fast-uri",
+      "version": "4.2.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fast-uri",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fastify",
+      "version": "5.12.7",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fastify",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fastq",
+      "version": "1.20.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fastq",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fdir",
+      "version": "6.5.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fdir",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "find-my-way",
+      "version": "9.10.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/find-my-way",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "fsevents",
+      "version": "2.3.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/fsevents",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "ipaddr.js",
+      "version": "2.5.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/ipaddr.js",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "js-yaml",
+      "version": "4.3.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/js-yaml",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "js-yaml",
+      "version": "5.5.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/js-yaml",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "json-schema-ref-resolver",
+      "version": "3.0.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/json-schema-ref-resolver",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "json-schema-to-typescript",
+      "version": "16.0.0",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/json-schema-to-typescript",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "json-schema-traverse",
+      "version": "1.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/json-schema-traverse",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "light-my-request",
+      "version": "6.8.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/light-my-request",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-android-arm64",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-android-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-darwin-arm64",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-darwin-arm64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-darwin-x64",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-darwin-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-freebsd-x64",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-freebsd-x64",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-linux-arm-gnueabihf",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-linux-arm-gnueabihf",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-linux-arm64-gnu",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-linux-arm64-gnu",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-linux-arm64-musl",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-linux-arm64-musl",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-linux-x64-gnu",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-linux-x64-gnu",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-linux-x64-musl",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-linux-x64-musl",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-win32-arm64-msvc",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-win32-arm64-msvc",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lightningcss-win32-x64-msvc",
+      "version": "1.33.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lightningcss-win32-x64-msvc",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lodash",
+      "version": "4.18.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lodash",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "lucide-react",
+      "version": "1.66.0",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/lucide-react",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "magic-string",
+      "version": "1.4.5",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/magic-string",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "minimist",
+      "version": "1.2.8",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/minimist",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "nanoid",
+      "version": "3.3.20",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/nanoid",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "obug",
+      "version": "3.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/obug",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "on-exit-leak-free",
+      "version": "2.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/on-exit-leak-free",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "picocolors",
+      "version": "1.1.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/picocolors",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "picomatch",
+      "version": "4.0.7",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/picomatch",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "pino",
+      "version": "10.4.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/pino",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "pino-abstract-transport",
+      "version": "3.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/pino-abstract-transport",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "pino-std-serializers",
+      "version": "7.1.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/pino-std-serializers",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "postcss",
+      "version": "8.5.32",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/postcss",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "prettier",
+      "version": "3.9.10",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/prettier",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "process-warning",
+      "version": "5.1.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/process-warning",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "quick-format-unescaped",
+      "version": "4.0.4",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/quick-format-unescaped",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "react",
+      "version": "19.3.1",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/react",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "react-dom",
+      "version": "19.3.1",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/react-dom",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "real-require",
+      "version": "1.0.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/real-require",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "require-from-string",
+      "version": "2.0.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/require-from-string",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "ret",
+      "version": "0.5.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/ret",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "reusify",
+      "version": "1.1.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/reusify",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "rfdc",
+      "version": "1.4.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/rfdc",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "rolldown",
+      "version": "1.2.16",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/rolldown",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "safe-regex2",
+      "version": "5.1.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/safe-regex2",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "safe-stable-stringify",
+      "version": "2.5.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/safe-stable-stringify",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "scheduler",
+      "version": "0.28.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/scheduler",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "secure-json-parse",
+      "version": "4.1.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/secure-json-parse",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "semver",
+      "version": "7.8.6",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/semver",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "set-cookie-parser",
+      "version": "3.2.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/set-cookie-parser",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "sonic-boom",
+      "version": "4.2.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/sonic-boom",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "source-map-js",
+      "version": "1.2.2",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/source-map-js",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "split2",
+      "version": "4.2.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/split2",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "std-env",
+      "version": "4.3.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/std-env",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "thread-stream",
+      "version": "4.2.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/thread-stream",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "tinybench",
+      "version": "6.2.3",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/tinybench",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "tinyexec",
+      "version": "1.3.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/tinyexec",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "tinyglobby",
+      "version": "0.2.17",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/tinyglobby",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "toad-cache",
+      "version": "3.7.4",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/toad-cache",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "typescript",
+      "version": "7.0.2",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/typescript",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "undici-types",
+      "version": "8.9.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/undici-types",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "use-sync-external-store",
+      "version": "1.7.0",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/use-sync-external-store",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "vite",
+      "version": "8.3.5",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/vite",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "vitest",
+      "version": "5.1.0",
+      "scope": "development",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/vitest",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "why-is-node-running",
+      "version": "3.2.1",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/why-is-node-running",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "yaml",
+      "version": "2.9.1",
+      "scope": "direct",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/yaml",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    },
+    {
+      "name": "zustand",
+      "version": "4.5.7",
+      "scope": "transitive",
+      "license": "not recorded in lockfile",
+      "registryReference": "https://www.npmjs.com/package/zustand",
+      "referenceStatus": "registry metadata link; vendor documentation not individually reviewed"
+    }
+  ]
+}
