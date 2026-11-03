@@ -48,7 +48,7 @@ function workflowFact(overrides: Partial<WorkflowFact> = {}): WorkflowFact {
       },
     ],
     hasDynamicNeeds: false,
-        ambiguityReasons: [],
+    ambiguityReasons: [],
     ...overrides,
     hasLiteralTestGate: overrides.hasLiteralTestGate ?? true,
   };
@@ -106,7 +106,7 @@ describe("deterministic suggestions", () => {
           isTestGate: false,
         },
       ],
-          });
+    });
     const ruleFacts: RuleDiscoveryFacts = {
       ...facts(featureWorkflow),
       workflows: [featureWorkflow, brokenWorkflow],
@@ -180,7 +180,9 @@ describe("deterministic suggestions", () => {
         },
       ],
     });
-    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FEAT-001")).toHaveLength(1);
+    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FEAT-001")).toHaveLength(
+      1,
+    );
   });
 
   it("does not report a missing gate when one is an ancestor of deployment", () => {
@@ -204,7 +206,9 @@ describe("deterministic suggestions", () => {
         },
       ],
     });
-    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FEAT-001")).toHaveLength(0);
+    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FEAT-001")).toHaveLength(
+      0,
+    );
   });
 
   it.each([
@@ -244,10 +248,14 @@ describe("deterministic suggestions", () => {
         },
       ],
     });
-    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FIX-001")).toHaveLength(1);
+    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FIX-001")).toHaveLength(
+      1,
+    );
 
     const missingEvidence = workflowFact({ workflowEvidenceId: "ev-does-not-exist" });
-    expect(category(evaluateSuggestions(snapshotCopy(), facts(missingEvidence)), "FIX-001")).toHaveLength(0);
+    expect(
+      category(evaluateSuggestions(snapshotCopy(), facts(missingEvidence)), "FIX-001"),
+    ).toHaveLength(0);
   });
 
   it("still reports a literal missing prerequisite from a completed workflow", () => {
@@ -265,7 +273,9 @@ describe("deterministic suggestions", () => {
         },
       ],
     });
-    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FIX-001")).toHaveLength(1);
+    expect(category(evaluateSuggestions(snapshotCopy(), facts(workflow)), "FIX-001")).toHaveLength(
+      1,
+    );
   });
 
   it("reports duplicate package resolutions only in the same workspace", () => {
@@ -440,7 +450,9 @@ describe("deterministic suggestions", () => {
   it("does not emit a cycle finding when edge evidence cannot be resolved", () => {
     const input = snapshotCopy();
     input.relationships
-      .filter((relationship) => relationship.fromId === "cmp-api" || relationship.fromId === "cmp-worker")
+      .filter(
+        (relationship) => relationship.fromId === "cmp-api" || relationship.fromId === "cmp-worker",
+      )
       .forEach((relationship) => {
         relationship.evidenceIds = ["missing-evidence"];
       });
@@ -450,9 +462,13 @@ describe("deterministic suggestions", () => {
   it("creates documentation findings for partial records and suppresses complete records", () => {
     const input = snapshotCopy();
     const docsSuggestions = category(evaluateSuggestions(input), "DOCS-001");
-    expect(docsSuggestions.some((suggestion) => suggestion.targetIds.includes("cmp-node"))).toBe(true);
+    expect(docsSuggestions.some((suggestion) => suggestion.targetIds.includes("cmp-node"))).toBe(
+      true,
+    );
 
-    const serviceRecord = input.documentation.find((record) => record.componentId === "cmp-service")!;
+    const serviceRecord = input.documentation.find(
+      (record) => record.componentId === "cmp-service",
+    )!;
     serviceRecord.status = "complete";
     expect(
       category(evaluateSuggestions(input), "DOCS-001").some((suggestion) =>
@@ -532,7 +548,7 @@ describe("deterministic suggestions", () => {
           isTestGate: false,
         },
       ],
-          });
+    });
     const findings = category(
       evaluateSuggestions(snapshotCopy(), { workflows: [workflow, structuredClone(workflow)] }),
       "FIX-001",

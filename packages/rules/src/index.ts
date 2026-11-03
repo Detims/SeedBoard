@@ -114,7 +114,10 @@ function compareLexical(left: string, right: string): number {
 }
 
 function safeText(value: string, maxLength: number): string {
-  const normalized = value.replace(/[\u0000-\u001f\u007f]+/g, " ").replace(/\s+/g, " ").trim();
+  const normalized = value
+    .replace(/[\u0000-\u001f\u007f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   return normalized.length <= maxLength ? normalized : `${normalized.slice(0, maxLength - 1)}…`;
 }
 
@@ -248,7 +251,10 @@ function evaluateFixRule(snapshot: Snapshot, workflows: readonly WorkflowFact[])
   return findings;
 }
 
-function ancestorJobs(job: WorkflowJobFact, jobsById: ReadonlyMap<string, WorkflowJobFact>): Set<string> | undefined {
+function ancestorJobs(
+  job: WorkflowJobFact,
+  jobsById: ReadonlyMap<string, WorkflowJobFact>,
+): Set<string> | undefined {
   const ancestors = new Set<string>();
   const visited = new Set<string>();
   const pending = [...job.needs];
@@ -318,7 +324,10 @@ function evaluateFeatureRule(snapshot: Snapshot, workflows: readonly WorkflowFac
   return findings;
 }
 
-function evaluateChoreRule(snapshot: Snapshot, packageFacts: readonly DependencyOccurrenceFact[]): Suggestion[] {
+function evaluateChoreRule(
+  snapshot: Snapshot,
+  packageFacts: readonly DependencyOccurrenceFact[],
+): Suggestion[] {
   const groups = new Map<string, DependencyOccurrenceFact[]>();
   for (const occurrence of packageFacts) {
     if (
@@ -375,7 +384,10 @@ function evaluateChoreRule(snapshot: Snapshot, packageFacts: readonly Dependency
 
 type DirectedEdge = { from: string; to: string; relationship: Relationship };
 
-function stronglyConnectedComponents(nodeIds: readonly string[], edges: readonly DirectedEdge[]): string[][] {
+function stronglyConnectedComponents(
+  nodeIds: readonly string[],
+  edges: readonly DirectedEdge[],
+): string[][] {
   const adjacency = new Map<string, string[]>();
   for (const id of nodeIds) adjacency.set(id, []);
   for (const edge of edges) adjacency.get(edge.from)?.push(edge.to);
@@ -421,11 +433,16 @@ function stronglyConnectedComponents(nodeIds: readonly string[], edges: readonly
 }
 
 function evaluateRefactorRule(snapshot: Snapshot): Suggestion[] {
-  const eligibleComponents = snapshot.components.filter((component) => component.kind !== "package");
+  const eligibleComponents = snapshot.components.filter(
+    (component) => component.kind !== "package",
+  );
   const componentIds = new Set(eligibleComponents.map((component) => component.id));
   const edges = snapshot.relationships
     .filter((relationship) => relationship.type === "depends_on")
-    .filter((relationship) => componentIds.has(relationship.fromId) && componentIds.has(relationship.toId))
+    .filter(
+      (relationship) =>
+        componentIds.has(relationship.fromId) && componentIds.has(relationship.toId),
+    )
     .map((relationship) => ({
       from: relationship.fromId,
       to: relationship.toId,
@@ -441,7 +458,9 @@ function evaluateRefactorRule(snapshot: Snapshot): Suggestion[] {
     const evidence = uniqueSorted(cycleEdges.flatMap((edge) => edge.relationship.evidenceIds));
     if (cycleEdges.length === 0 || !hasEvidence(snapshot, ...evidence)) continue;
 
-    const componentNames = new Map(snapshot.components.map((component) => [component.id, component.name]));
+    const componentNames = new Map(
+      snapshot.components.map((component) => [component.id, component.name]),
+    );
     const names = cycle.map((id) => componentNames.get(id) ?? id);
     const conditionEdges = cycleEdges
       .map((edge) => `${edge.from}->${edge.to}`)
@@ -478,7 +497,9 @@ function evaluateStyleRule(snapshot: Snapshot, workspaces: readonly WorkspaceFac
     ) {
       continue;
     }
-    const hasFormattingScript = workspace.scripts.some((script) => formatterScripts.has(script.toLowerCase()));
+    const hasFormattingScript = workspace.scripts.some((script) =>
+      formatterScripts.has(script.toLowerCase()),
+    );
     if (
       hasFormattingScript ||
       workspace.formatterConfigPresent ||
@@ -508,13 +529,19 @@ function evaluateStyleRule(snapshot: Snapshot, workspaces: readonly WorkspaceFac
 }
 
 function evaluateDocsRule(snapshot: Snapshot): Suggestion[] {
-  const docsByComponent = new Map(snapshot.documentation.map((record) => [record.componentId, record]));
+  const docsByComponent = new Map(
+    snapshot.documentation.map((record) => [record.componentId, record]),
+  );
   const findings: Suggestion[] = [];
   const rule = ruleDefinitions.docs;
 
   for (const component of snapshot.components) {
     const documentation = docsByComponent.get(component.id);
-    if (!documentation || documentation.status === "complete" || !hasEvidence(snapshot, ...component.evidenceIds)) {
+    if (
+      !documentation ||
+      documentation.status === "complete" ||
+      !hasEvidence(snapshot, ...component.evidenceIds)
+    ) {
       continue;
     }
     const statusText = documentation.status === "partial" ? "partially documented" : "undocumented";
