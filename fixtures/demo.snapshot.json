@@ -1,0 +1,668 @@
+{
+  "schemaVersion": "1.0",
+  "id": "snapshot-demo-001",
+  "projectId": "project-demo",
+  "sourceRevision": null,
+  "capturedAt": "2026-11-03T00:00:00Z",
+  "demo": true,
+  "environments": [
+    {
+      "id": "env-local",
+      "name": "Local (synthetic)"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-config",
+      "sourceType": "declaration",
+      "path": ".modernizer/project.json",
+      "url": null,
+      "line": 1,
+      "observedAt": "2026-11-03T00:00:00Z",
+      "description": "Synthetic component declarations, including a backend-worker cycle."
+    },
+    {
+      "id": "ev-demo",
+      "sourceType": "scan",
+      "path": null,
+      "url": null,
+      "line": null,
+      "observedAt": "2026-11-03T00:00:00Z",
+      "description": "Synthetic hand-authored demonstration metadata; no real scan or live check occurred."
+    },
+    {
+      "id": "ev-lock",
+      "sourceType": "file",
+      "path": "package-lock.json",
+      "url": null,
+      "line": 1,
+      "observedAt": "2026-11-03T00:00:00Z",
+      "description": "Synthetic duplicate package resolutions. Versions are examples, not current release claims."
+    },
+    {
+      "id": "ev-manifest",
+      "sourceType": "file",
+      "path": "package.json",
+      "url": null,
+      "line": 1,
+      "observedAt": "2026-11-03T00:00:00Z",
+      "description": "Synthetic manifest metadata for demonstration only."
+    },
+    {
+      "id": "ev-workflow",
+      "sourceType": "file",
+      "path": ".github/workflows/ci.yml",
+      "url": null,
+      "line": 1,
+      "observedAt": "2026-11-03T00:00:00Z",
+      "description": "Synthetic workflow with a missing literal job prerequisite and no declared test gate."
+    }
+  ],
+  "components": [
+    {
+      "id": "cmp-api",
+      "kind": "backend",
+      "layer": "backend",
+      "name": "Demo API",
+      "locator": "apps/api/package.json",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-manifest"]
+    },
+    {
+      "id": "cmp-ci",
+      "kind": "pipeline",
+      "layer": "delivery",
+      "name": "Demo workflow",
+      "locator": ".github/workflows/ci.yml",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        },
+        {
+          "dimension": "ci",
+          "state": "unknown",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-workflow"]
+    },
+    {
+      "id": "cmp-db",
+      "kind": "database",
+      "layer": "data",
+      "name": "Declared demo database",
+      "locator": "config/database",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        },
+        {
+          "dimension": "health",
+          "state": "unknown",
+          "environmentId": "env-local",
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "cmp-migration",
+      "kind": "migration",
+      "layer": "data",
+      "name": "001 initial migration",
+      "locator": "database/migrations/001.sql",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        },
+        {
+          "dimension": "migration",
+          "state": "unknown",
+          "environmentId": "env-local",
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "cmp-node",
+      "kind": "runtime",
+      "layer": "shared",
+      "name": "Node runtime",
+      "locator": "runtimes/node",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-manifest"]
+    },
+    {
+      "id": "cmp-pkg-one",
+      "kind": "package",
+      "layer": "shared",
+      "name": "Example helper 1.0.0",
+      "locator": "packages/example-helper/1.0.0",
+      "environmentIds": ["env-local"],
+      "versions": [
+        {
+          "facet": "resolved",
+          "value": "1.0.0",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "evidenceIds": ["ev-lock"]
+        }
+      ],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-lock"]
+    },
+    {
+      "id": "cmp-pkg-two",
+      "kind": "package",
+      "layer": "shared",
+      "name": "Example helper 2.0.0",
+      "locator": "packages/example-helper/2.0.0",
+      "environmentIds": ["env-local"],
+      "versions": [
+        {
+          "facet": "resolved",
+          "value": "2.0.0",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "evidenceIds": ["ev-lock"]
+        }
+      ],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-lock"]
+    },
+    {
+      "id": "cmp-service",
+      "kind": "external_service",
+      "layer": "external",
+      "name": "In-house demo API",
+      "locator": "services/demo-provider",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "cmp-tests",
+      "kind": "test_suite",
+      "layer": "testing",
+      "name": "Demo API tests",
+      "locator": "apps/api/test",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-manifest"]
+    },
+    {
+      "id": "cmp-web",
+      "kind": "frontend",
+      "layer": "frontend",
+      "name": "Demo web",
+      "locator": "apps/web/package.json",
+      "environmentIds": ["env-local"],
+      "versions": [
+        {
+          "facet": "declared",
+          "value": "^1.0.0",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "evidenceIds": ["ev-manifest"]
+        },
+        {
+          "facet": "resolved",
+          "value": "1.0.0",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "evidenceIds": ["ev-lock"]
+        }
+      ],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-manifest"]
+    },
+    {
+      "id": "cmp-worker",
+      "kind": "backend",
+      "layer": "backend",
+      "name": "Demo worker",
+      "locator": "apps/worker/package.json",
+      "environmentIds": ["env-local"],
+      "versions": [],
+      "observations": [
+        {
+          "dimension": "configuration",
+          "state": "configured",
+          "environmentId": null,
+          "observedAt": "2026-11-03T00:00:00Z",
+          "confidence": "high",
+          "evidenceIds": ["ev-demo"]
+        }
+      ],
+      "evidenceIds": ["ev-manifest"]
+    }
+  ],
+  "relationships": [
+    {
+      "id": "rel-01",
+      "fromId": "cmp-web",
+      "toId": "cmp-api",
+      "type": "calls",
+      "environmentIds": ["env-local"],
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "rel-02",
+      "fromId": "cmp-api",
+      "toId": "cmp-worker",
+      "type": "depends_on",
+      "environmentIds": ["env-local"],
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "rel-03",
+      "fromId": "cmp-worker",
+      "toId": "cmp-api",
+      "type": "depends_on",
+      "environmentIds": ["env-local"],
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "rel-04",
+      "fromId": "cmp-api",
+      "toId": "cmp-db",
+      "type": "reads_writes",
+      "environmentIds": ["env-local"],
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "rel-05",
+      "fromId": "cmp-migration",
+      "toId": "cmp-db",
+      "type": "migrates",
+      "environmentIds": ["env-local"],
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "rel-06",
+      "fromId": "cmp-tests",
+      "toId": "cmp-api",
+      "type": "tests",
+      "environmentIds": ["env-local"],
+      "confidence": "high",
+      "evidenceIds": ["ev-manifest"]
+    },
+    {
+      "id": "rel-07",
+      "fromId": "cmp-ci",
+      "toId": "cmp-web",
+      "type": "deploys",
+      "environmentIds": ["env-local"],
+      "confidence": "high",
+      "evidenceIds": ["ev-workflow"]
+    },
+    {
+      "id": "rel-08",
+      "fromId": "cmp-api",
+      "toId": "cmp-service",
+      "type": "calls",
+      "environmentIds": ["env-local"],
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"]
+    },
+    {
+      "id": "rel-09",
+      "fromId": "cmp-api",
+      "toId": "cmp-pkg-one",
+      "type": "depends_on",
+      "environmentIds": ["env-local"],
+      "confidence": "high",
+      "evidenceIds": ["ev-lock"]
+    },
+    {
+      "id": "rel-10",
+      "fromId": "cmp-api",
+      "toId": "cmp-pkg-two",
+      "type": "depends_on",
+      "environmentIds": ["env-local"],
+      "confidence": "high",
+      "evidenceIds": ["ev-lock"]
+    },
+    {
+      "id": "rel-11",
+      "fromId": "cmp-api",
+      "toId": "cmp-node",
+      "type": "depends_on",
+      "environmentIds": ["env-local"],
+      "confidence": "high",
+      "evidenceIds": ["ev-manifest"]
+    }
+  ],
+  "coverage": [
+    {
+      "collector": "demo-fixture",
+      "status": "supported",
+      "scope": "Synthetic example only",
+      "observedAt": "2026-11-03T00:00:00Z",
+      "reason": "Hand-authored demonstration, not a completed collector run."
+    },
+    {
+      "collector": "github-live",
+      "status": "not_configured",
+      "scope": "Workflow run results",
+      "observedAt": "2026-11-03T00:00:00Z",
+      "reason": "No live provider connection; CI result remains unknown."
+    },
+    {
+      "collector": "database-live",
+      "status": "not_configured",
+      "scope": "Applied migration history",
+      "observedAt": "2026-11-03T00:00:00Z",
+      "reason": "No database connection; applied state remains unknown."
+    }
+  ],
+  "suggestions": [
+    {
+      "id": "sg-chore",
+      "fingerprint": "demo-CHORE-001-v1",
+      "ruleId": "CHORE-001",
+      "ruleVersion": 1,
+      "category": "chore",
+      "targetIds": ["cmp-pkg-one"],
+      "priority": "P3",
+      "effort": "medium",
+      "confidence": "high",
+      "evidenceIds": ["ev-lock"],
+      "title": "chore: evaluate helper version alignment",
+      "rationale": "Synthetic finding illustrating the documented rule. This hand-authored fixture is not proof that an analyzer or rule engine has run.",
+      "action": "Review the linked synthetic evidence and implement the matching task when building the real rule.",
+      "verification": [
+        "Use the rule-specific positive and negative fixtures required by docs/06-suggestions.md."
+      ]
+    },
+    {
+      "id": "sg-docs",
+      "fingerprint": "demo-DOCS-001-v1",
+      "ruleId": "DOCS-001",
+      "ruleVersion": 1,
+      "category": "docs",
+      "targetIds": ["cmp-service"],
+      "priority": "P3",
+      "effort": "small",
+      "confidence": "high",
+      "evidenceIds": ["ev-config"],
+      "title": "docs: document in-house API usage",
+      "rationale": "Synthetic finding illustrating the documented rule. This hand-authored fixture is not proof that an analyzer or rule engine has run.",
+      "action": "Review the linked synthetic evidence and implement the matching task when building the real rule.",
+      "verification": [
+        "Use the rule-specific positive and negative fixtures required by docs/06-suggestions.md."
+      ]
+    },
+    {
+      "id": "sg-feat",
+      "fingerprint": "demo-FEAT-001-v1",
+      "ruleId": "FEAT-001",
+      "ruleVersion": 1,
+      "category": "feat",
+      "targetIds": ["cmp-ci"],
+      "priority": "P2",
+      "effort": "medium",
+      "confidence": "medium",
+      "evidenceIds": ["ev-workflow"],
+      "title": "feat: add a verified test gate",
+      "rationale": "Synthetic finding illustrating the documented rule. This hand-authored fixture is not proof that an analyzer or rule engine has run.",
+      "action": "Review the linked synthetic evidence and implement the matching task when building the real rule.",
+      "verification": [
+        "Use the rule-specific positive and negative fixtures required by docs/06-suggestions.md."
+      ]
+    },
+    {
+      "id": "sg-fix",
+      "fingerprint": "demo-FIX-001-v1",
+      "ruleId": "FIX-001",
+      "ruleVersion": 1,
+      "category": "fix",
+      "targetIds": ["cmp-ci"],
+      "priority": "P1",
+      "effort": "small",
+      "confidence": "high",
+      "evidenceIds": ["ev-workflow"],
+      "title": "fix: repair workflow prerequisite",
+      "rationale": "Synthetic finding illustrating the documented rule. This hand-authored fixture is not proof that an analyzer or rule engine has run.",
+      "action": "Review the linked synthetic evidence and implement the matching task when building the real rule.",
+      "verification": [
+        "Use the rule-specific positive and negative fixtures required by docs/06-suggestions.md."
+      ]
+    },
+    {
+      "id": "sg-refactor",
+      "fingerprint": "demo-REFACTOR-001-v1",
+      "ruleId": "REFACTOR-001",
+      "ruleVersion": 1,
+      "category": "refactor",
+      "targetIds": ["cmp-api"],
+      "priority": "P2",
+      "effort": "large",
+      "confidence": "medium",
+      "evidenceIds": ["ev-config"],
+      "title": "refactor: inspect API-worker coupling",
+      "rationale": "Synthetic finding illustrating the documented rule. This hand-authored fixture is not proof that an analyzer or rule engine has run.",
+      "action": "Review the linked synthetic evidence and implement the matching task when building the real rule.",
+      "verification": [
+        "Use the rule-specific positive and negative fixtures required by docs/06-suggestions.md."
+      ]
+    },
+    {
+      "id": "sg-style",
+      "fingerprint": "demo-STYLE-001-v1",
+      "ruleId": "STYLE-001",
+      "ruleVersion": 1,
+      "category": "style",
+      "targetIds": ["cmp-web"],
+      "priority": "P3",
+      "effort": "small",
+      "confidence": "medium",
+      "evidenceIds": ["ev-manifest"],
+      "title": "style: establish a formatting convention",
+      "rationale": "Synthetic finding illustrating the documented rule. This hand-authored fixture is not proof that an analyzer or rule engine has run.",
+      "action": "Review the linked synthetic evidence and implement the matching task when building the real rule.",
+      "verification": [
+        "Use the rule-specific positive and negative fixtures required by docs/06-suggestions.md."
+      ]
+    }
+  ],
+  "documentation": [
+    {
+      "componentId": "cmp-api",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-ci",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-db",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-migration",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-node",
+      "status": "partial",
+      "officialReferences": [
+        {
+          "title": "Node.js API (version matching still required)",
+          "url": "https://nodejs.org/api/",
+          "verifiedAt": null
+        }
+      ],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Official starting reference supplied; exact runtime version and internal operational guidance are unknown."
+    },
+    {
+      "componentId": "cmp-pkg-one",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-pkg-two",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-service",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-tests",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-web",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    },
+    {
+      "componentId": "cmp-worker",
+      "status": "undocumented",
+      "officialReferences": [],
+      "internalPaths": [],
+      "reviewedAt": null,
+      "gap": "Synthetic component with documentation not yet authored; include in appendix and show gap."
+    }
+  ]
+}

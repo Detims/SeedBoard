@@ -1,0 +1,29 @@
+{
+  "name": "modernizer",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=24.22.1 <25 || >=26.13.0 <27"
+  },
+  "scripts": {
+    "dev": "pnpm contracts:generate && pnpm --filter @modernizer/contracts build && pnpm --filter @modernizer/web dev",
+    "dev:api": "pnpm contracts:generate && pnpm --filter @modernizer/contracts build && pnpm --filter @modernizer/api dev",
+    "typecheck": "pnpm contracts:generate && pnpm --filter @modernizer/contracts build && pnpm -r --if-present typecheck",
+    "test": "pnpm contracts:generate && pnpm --filter @modernizer/contracts build && vitest run",
+    "build": "pnpm contracts:generate && pnpm -r --if-present build",
+    "test:e2e": "node scripts/phase-command.mjs test:e2e T7",
+    "docs:check": "node scripts/check-docs.mjs",
+    "contracts:generate": "node scripts/generate-types.mjs",
+    "contracts:check": "node scripts/generate-types.mjs --check",
+    "format:check": "prettier --check \"apps/**/*.{ts,json}\" \"packages/**/*.{ts,json}\" \"scripts/**/*.mjs\" \"*.json\" \"*.yaml\" \"contracts/**/*.{json,yaml}\" \"fixtures/**/*.json\""
+  },
+  "devDependencies": {
+    "json-schema-to-typescript": "16.0.0",
+    "prettier": "3.9.10",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0",
+    "yaml": "2.9.1",
+    "@types/node": "26.6.6"
+  }
+}

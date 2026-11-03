@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "paths": {
+      "@modernizer/contracts": ["../contracts/src/generated.ts"]
+    },
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts"]
+}

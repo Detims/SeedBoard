@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0",
+  "id": "snapshot-empty-001",
+  "projectId": "project-empty-demo",
+  "sourceRevision": null,
+  "capturedAt": "2026-11-03T00:00:00Z",
+  "demo": true,
+  "environments": [],
+  "evidence": [],
+  "components": [],
+  "relationships": [],
+  "coverage": [
+    {
+      "collector": "demo-fixture",
+      "status": "supported",
+      "scope": "Empty synthetic example",
+      "observedAt": "2026-11-03T00:00:00Z",
+      "reason": "Intentionally empty fixture."
+    }
+  ],
+  "suggestions": [],
+  "documentation": []
+}

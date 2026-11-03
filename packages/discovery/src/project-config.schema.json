@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:modernizer:project-config:1.0",
+  "title": "Modernizer project declarations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "version": { "const": 1 },
+    "environments": {
+      "type": "array",
+      "maxItems": 30,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 100 }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["key", "kind", "layer", "name", "locator"],
+        "properties": {
+          "key": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$" },
+          "kind": { "enum": ["frontend", "backend", "package", "runtime", "test_suite", "database", "migration", "pipeline", "external_service", "api_endpoint"] },
+          "layer": { "enum": ["frontend", "backend", "testing", "data", "delivery", "shared", "external"] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "locator": { "type": "string", "minLength": 1, "maxLength": 1000, "pattern": "^(?!/)(?!.*\\\\)(?![A-Za-z]:)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\u0000]+$" },
+          "environmentIds": { "type": "array", "maxItems": 30, "uniqueItems": true, "items": { "type": "string", "maxLength": 160 } },
+          "officialReferences": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["title", "url"],
+              "properties": {
+                "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+                "url": { "type": "string", "format": "uri", "maxLength": 2000 }
+              }
+            }
+          },
+          "internalPaths": { "type": "array", "maxItems": 30, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 1000 } }
+        }
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "type"],
+        "properties": {
+          "from": { "type": "string", "maxLength": 160 },
+          "to": { "type": "string", "maxLength": 160 },
+          "type": { "enum": ["depends_on", "calls", "reads_writes", "deploys", "tests", "migrates"] },
+          "environmentIds": { "type": "array", "maxItems": 30, "uniqueItems": true, "items": { "type": "string", "maxLength": 160 } }
+        }
+      }
+    },
+    "migrationDirectories": { "type": "array", "maxItems": 100, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 1000 } },
+    "ignore": { "type": "array", "maxItems": 100, "uniqueItems": true, "items": { "type": "string", "minLength": 1, "maxLength": 500 } },
+    "collectors": { "type": "array", "maxItems": 20, "uniqueItems": true, "items": { "enum": ["project-config", "node-manifests", "npm-lock", "github-actions", "migration-files"] } }
+  }
+}
