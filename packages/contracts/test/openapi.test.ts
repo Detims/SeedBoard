@@ -33,6 +33,7 @@ describe("OpenAPI contract", () => {
       "PUT /projects/{projectId}/suggestion-decisions/{fingerprint}",
       "GET /snapshots/{snapshotId}/export",
       "GET /healthz",
+      "GET /session",
     ];
 
     expect(document.openapi).toBe("3.1.0");
@@ -45,6 +46,7 @@ describe("OpenAPI contract", () => {
     );
     expect(expected.filter((operation) => !operations.has(operation))).toEqual([]);
     expect(document.components.schemas).toHaveProperty("ErrorResponse");
+    expect(document.components.schemas).toHaveProperty("SessionBootstrapResponse");
     expect(document.components.schemas).toHaveProperty("DiffResponse");
     expect(document.components.schemas).toHaveProperty("LayoutInput");
     expect(document.components.schemas).toHaveProperty("SuggestionDecisionInput");

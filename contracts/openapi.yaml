@@ -272,6 +272,26 @@ paths:
                 $ref: "#/components/schemas/HealthResponse"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+  /session:
+    get:
+      tags: [health]
+      operationId: bootstrapLocalSession
+      description: Issues a short-lived same-origin browser session cookie and request-header name/value. The cookie is HttpOnly; clients must not log it.
+      responses:
+        "200":
+          description: Local browser request bootstrap.
+          headers:
+            Set-Cookie:
+              description: HttpOnly, SameSite=Strict session cookie scoped to /api/v1.
+              schema: { type: string }
+            Cache-Control:
+              schema: { type: string, const: no-store }
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionBootstrapResponse"
+        "403":
+          $ref: "#/components/responses/Forbidden"
 components:
   parameters:
     ProjectId:
@@ -308,6 +328,11 @@ components:
       content:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
+    Forbidden:
+      description: Local browser request was rejected by host, origin, session, or CSRF checks.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ErrorResponse" }
     Conflict:
       description: Active scan conflict or incompatible snapshot comparison.
       content:
@@ -329,6 +354,20 @@ components:
         application/json:
           schema: { $ref: "#/components/schemas/ErrorResponse" }
   schemas:
+    SessionBootstrapResponse:
+      type: object
+      additionalProperties: false
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          additionalProperties: false
+          required: [csrfHeader, csrfValue]
+          properties:
+            csrfHeader: { type: string, const: x-modernizer-request }
+            csrfValue: { type: string, const: same-origin }
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
     Meta:
       type: object
       required: [requestId]
