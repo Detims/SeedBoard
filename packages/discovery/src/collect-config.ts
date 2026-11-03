@@ -1,6 +1,15 @@
 import type { ProjectConfig } from "./config.js";
 import { parseProjectConfig } from "./config.js";
-import { addComponent, addCoverage, addEvidence, addIssue, addRelationship, readFailureCode, readFailureMessage, stableId, type CollectorSink } from "./shared.js";
+import {
+  addComponent,
+  addCoverage,
+  addEvidence,
+  addIssue,
+  addRelationship,
+  readUtf8,
+  stableId,
+  type CollectorSink,
+} from "./shared.js";
 import type { DiscoveryEnvironment } from "./types.js";
 import type { SafeSource } from "./safe-source.js";
 
@@ -37,28 +46,47 @@ export async function collectProjectConfig(
   };
 
   if (selectedCollectors && !selectedCollectors.has("project-config")) {
-    addCoverage(sink, "project-config", "not_configured", collectorPath, "Disabled by project configuration.");
+    addCoverage(
+      sink,
+      "project-config",
+      "not_configured",
+      collectorPath,
+      "Disabled by project configuration.",
+    );
     return defaultResult;
   }
   if (!source.has(collectorPath)) {
-    addCoverage(sink, "project-config", "not_configured", collectorPath, "No optional project declaration was supplied.");
+    addCoverage(
+      sink,
+      "project-config",
+      "not_configured",
+      collectorPath,
+      "No optional project declaration was supplied.",
+    );
     return defaultResult;
   }
 
-  let bytes: Uint8Array;
-  try {
-    bytes = await source.read(collectorPath);
-  } catch (error) {
-    addCoverage(sink, "project-config", "failed", collectorPath, "Project declaration could not be read safely.");
-    const code = readFailureCode(error);
-    addIssue(sink, "project-config", code, collectorPath, readFailureMessage(code));
+  const text = await readUtf8(source, sink, "project-config", collectorPath);
+  if (text === null) {
     return defaultResult;
   }
 
-  const parsed = parseProjectConfig(bytes);
+  const parsed = parseProjectConfig(new TextEncoder().encode(text));
   if (!parsed.ok) {
-    addCoverage(sink, "project-config", "failed", collectorPath, "Project declaration is malformed or violates its schema.");
-    addIssue(sink, "project-config", parsed.reason === "syntax" ? "parse_failed" : "invalid_config", collectorPath, "Project declaration is malformed or unsafe.");
+    addCoverage(
+      sink,
+      "project-config",
+      "failed",
+      collectorPath,
+      "Project declaration is malformed or violates its schema.",
+    );
+    addIssue(
+      sink,
+      "project-config",
+      parsed.reason === "syntax" ? "parse_failed" : "invalid_config",
+      collectorPath,
+      "Project declaration is malformed or unsafe.",
+    );
     return defaultResult;
   }
 
@@ -75,7 +103,13 @@ export async function collectProjectConfig(
   for (const environment of envs) environmentIds.add(environment.id);
 
   for (const declaration of config.components) {
-    const id = stableId("component", sink.projectId, declaration.kind, `declaration:${declaration.key}`, declaration.name);
+    const id = stableId(
+      "component",
+      sink.projectId,
+      declaration.kind,
+      `declaration:${declaration.key}`,
+      declaration.name,
+    );
     keyToComponentId.set(declaration.key, id);
     const valid = addComponent(
       sink,
@@ -129,7 +163,13 @@ export async function collectProjectConfig(
       "project-config",
     );
   }
-  addCoverage(sink, "project-config", "supported", collectorPath, "Validated declarations supplied by the project owner; not runtime verification.");
+  addCoverage(
+    sink,
+    "project-config",
+    "supported",
+    collectorPath,
+    "Validated declarations supplied by the project owner; not runtime verification.",
+  );
   return {
     config,
     keyToComponentId,

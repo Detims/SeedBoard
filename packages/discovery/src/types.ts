@@ -144,7 +144,7 @@ export type DiscoveryFileSystem = {
   realpath(path: string): Promise<string>;
   stat(path: string): Promise<FileStatLike>;
   lstat(path: string): Promise<FileStatLike>;
-  readdir(path: string): Promise<DirEntryLike[]>;
+  readdir(path: string, options: { withFileTypes: true }): Promise<DirEntryLike[]>;
   readFile(path: string): Promise<Uint8Array>;
 };
 

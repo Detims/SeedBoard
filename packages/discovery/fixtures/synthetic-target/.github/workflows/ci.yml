@@ -1,0 +1,14 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test web workspace
+        run: npm run test --workspace @demo/web
+  release:
+    needs: [verify]
+    environment: production
+    steps:
+      - name: Deploy application
+        run: echo deployment-command-is-not-executed

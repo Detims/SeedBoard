@@ -9,6 +9,7 @@ import type {
   DiscoveryRelationship,
   ScanBudgets,
 } from "./types.js";
+import type { SafeSource } from "./safe-source.js";
 
 export type CollectorSink = {
   projectId: string;
@@ -77,9 +78,26 @@ export function readFailureCode(error: unknown): DiscoveryIssue["code"] {
 }
 
 export function readFailureMessage(code: DiscoveryIssue["code"]): string {
-  if (code === "limit_bytes") return "Cumulative input size limit reached; remaining inputs were not read.";
+  if (code === "limit_bytes")
+    return "Cumulative input size limit reached; remaining inputs were not read.";
   if (code === "limit_file_size") return "Input file exceeds the configured per-file size limit.";
   return "Input could not be read safely.";
+}
+
+export async function readUtf8(
+  source: SafeSource,
+  sink: CollectorSink,
+  collector: CollectorId,
+  path: string,
+): Promise<string | null> {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(await source.read(path));
+  } catch (error) {
+    const code = readFailureCode(error);
+    addCoverage(sink, collector, "failed", path, readFailureMessage(code));
+    addIssue(sink, collector, code, path, readFailureMessage(code));
+    return null;
+  }
 }
 
 export function addComponent(

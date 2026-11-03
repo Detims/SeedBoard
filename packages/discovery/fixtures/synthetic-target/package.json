@@ -1,0 +1,10 @@
+{
+  "name": "modernizer-synthetic-target",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "vitest run"
+  }
+}

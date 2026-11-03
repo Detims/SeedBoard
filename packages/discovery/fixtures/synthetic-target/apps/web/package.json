@@ -1,0 +1,14 @@
+{
+  "name": "@demo/web",
+  "dependencies": {
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0",
+    "vitest": "^3.0.0"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "vite build"
+  }
+}

@@ -1,7 +1,22 @@
 import { parseDocument } from "yaml";
-import { addComponent, addCoverage, addEvidence, addIssue, addRelationship, stableId, type CollectorSink } from "./shared.js";
+import {
+  addComponent,
+  addCoverage,
+  addEvidence,
+  addIssue,
+  addRelationship,
+  readUtf8,
+  stableId,
+  type CollectorSink,
+} from "./shared.js";
 import { isSafeRelativePath, type SafeSource } from "./safe-source.js";
-import type { DependencyOccurrenceFact, DiscoveryFacts, DiscoveryIssue, WorkflowFact, WorkspaceFact } from "./types.js";
+import type {
+  DependencyOccurrenceFact,
+  DiscoveryFacts,
+  DiscoveryIssue,
+  WorkflowFact,
+  WorkspaceFact,
+} from "./types.js";
 import type { ConfigCollection } from "./collect-config.js";
 
 type UnknownRecord = Record<string, unknown>;
@@ -27,7 +42,14 @@ type LockPackage = {
 
 const packageNamePattern = /^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/;
 const versionCharactersPattern = /^[A-Za-z0-9*^~<>=|+\-. ]+$/;
-const frontendLibraries = new Set(["react", "react-dom", "vue", "svelte", "solid-js", "@angular/core"]);
+const frontendLibraries = new Set([
+  "react",
+  "react-dom",
+  "vue",
+  "svelte",
+  "solid-js",
+  "@angular/core",
+]);
 const backendLibraries = new Set(["fastify", "express", "koa", "hono", "@nestjs/core"]);
 const databaseDrivers = new Set([
   "pg",
@@ -116,16 +138,25 @@ function sanitiseVersion(value: unknown): string {
   if (typeof value !== "string" || value.length === 0 || value.length > 200) {
     return "unsupported-specifier";
   }
-  if (value.startsWith("workspace:")) return `workspace:${value.slice(10).replace(/[^\w*.^~<>=|+-]/g, "") || "*"}`;
+  if (value.startsWith("workspace:"))
+    return `workspace:${value.slice(10).replace(/[^\w*.^~<>=|+-]/g, "") || "*"}`;
   if (value.startsWith("file:") || value.startsWith("link:")) return "local-workspace-specifier";
-  if (versionCharactersPattern.test(value) && !value.includes("..")) return value.trim() || "unsupported-specifier";
+  if (versionCharactersPattern.test(value) && !value.includes(".."))
+    return value.trim() || "unsupported-specifier";
   return "non-registry-specifier";
 }
 
-function inferLayer(nameSet: Set<string>): { kind: "frontend" | "backend" | "package"; layer: "frontend" | "backend" | "shared" }[] {
-  const results: { kind: "frontend" | "backend" | "package"; layer: "frontend" | "backend" | "shared" }[] = [];
-  if ([...frontendLibraries].some((name) => nameSet.has(name))) results.push({ kind: "frontend", layer: "frontend" });
-  if ([...backendLibraries].some((name) => nameSet.has(name))) results.push({ kind: "backend", layer: "backend" });
+function inferLayer(
+  nameSet: Set<string>,
+): { kind: "frontend" | "backend" | "package"; layer: "frontend" | "backend" | "shared" }[] {
+  const results: {
+    kind: "frontend" | "backend" | "package";
+    layer: "frontend" | "backend" | "shared";
+  }[] = [];
+  if ([...frontendLibraries].some((name) => nameSet.has(name)))
+    results.push({ kind: "frontend", layer: "frontend" });
+  if ([...backendLibraries].some((name) => nameSet.has(name)))
+    results.push({ kind: "backend", layer: "backend" });
   if (results.length === 0) results.push({ kind: "package", layer: "shared" });
   return results;
 }
@@ -181,7 +212,10 @@ function workspaceComponent(
 
 function nearestWorkspace(path: string, manifests: Manifest[]): Manifest | null {
   const matches = manifests
-    .filter((manifest) => manifest.path === "." || path === manifest.path || path.startsWith(`${manifest.path}/`))
+    .filter(
+      (manifest) =>
+        manifest.path === "." || path === manifest.path || path.startsWith(`${manifest.path}/`),
+    )
     .sort((a, b) => b.path.length - a.path.length);
   return matches[0] ?? null;
 }
@@ -206,9 +240,19 @@ export async function collectNodeManifests(
   facts: DiscoveryFacts,
   config: ConfigCollection,
   selectedCollectors: ReadonlySet<string> | null,
-): Promise<{ manifests: Manifest[]; dependencyDeclarations: DependencyOccurrenceFact[]; supported: boolean }> {
+): Promise<{
+  manifests: Manifest[];
+  dependencyDeclarations: DependencyOccurrenceFact[];
+  supported: boolean;
+}> {
   if (selectedCollectors && !selectedCollectors.has("node-manifests")) {
-    addCoverage(sink, "node-manifests", "not_configured", "Node manifests", "Disabled by project configuration.");
+    addCoverage(
+      sink,
+      "node-manifests",
+      "not_configured",
+      "Node manifests",
+      "Disabled by project configuration.",
+    );
     return { manifests: [], dependencyDeclarations: [], supported: false };
   }
   const allPaths = source.paths().filter((path) => !isIgnoredByConfig(path, config.ignorePatterns));
@@ -216,23 +260,45 @@ export async function collectNodeManifests(
   let workspacePatterns: string[] = [];
 
   if (rootManifest) {
-    try {
-      const rootInput = record(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await source.read(rootManifest))));
-      if (rootInput) workspacePatterns = workspaceArray(rootInput.workspaces);
-    } catch {
-      // The regular manifest collector below records the bounded parse failure.
+    const rootText = await readUtf8(source, sink, "node-manifests", rootManifest);
+    if (rootText !== null) {
+      try {
+        const rootInput = record(JSON.parse(rootText));
+        if (rootInput) workspacePatterns = workspaceArray(rootInput.workspaces);
+      } catch {
+        // The manifest pass below records malformed JSON once.
+      }
     }
   }
 
   let workspaceManifest: string[] = [];
-  if (source.has("pnpm-workspace.yaml") && !isIgnoredByConfig("pnpm-workspace.yaml", config.ignorePatterns)) {
-    try {
-      const document = parseDocument(new TextDecoder("utf-8", { fatal: true }).decode(await source.read("pnpm-workspace.yaml")), { uniqueKeys: true });
-      if (document.errors.length === 0) workspacePatterns.push(...workspaceArray(document.toJS({ maxAliasCount: 50 }).packages));
-      else addIssue(sink, "node-manifests", "parse_failed", "pnpm-workspace.yaml", "Workspace declaration is malformed.");
-    } catch {
-      addIssue(sink, "node-manifests", "parse_failed", "pnpm-workspace.yaml", "Workspace declaration is malformed or exceeds parser limits.");
-    }
+  if (
+    source.has("pnpm-workspace.yaml") &&
+    !isIgnoredByConfig("pnpm-workspace.yaml", config.ignorePatterns)
+  ) {
+    const workspaceText = await readUtf8(source, sink, "node-manifests", "pnpm-workspace.yaml");
+    if (workspaceText !== null)
+      try {
+        const document = parseDocument(workspaceText, { uniqueKeys: true });
+        if (document.errors.length === 0)
+          workspacePatterns.push(...workspaceArray(document.toJS({ maxAliasCount: 50 }).packages));
+        else
+          addIssue(
+            sink,
+            "node-manifests",
+            "parse_failed",
+            "pnpm-workspace.yaml",
+            "Workspace declaration is malformed.",
+          );
+      } catch {
+        addIssue(
+          sink,
+          "node-manifests",
+          "parse_failed",
+          "pnpm-workspace.yaml",
+          "Workspace declaration is malformed or exceeds parser limits.",
+        );
+      }
   }
   workspacePatterns = [...new Set(workspacePatterns)];
   if (rootManifest && workspacePatterns.length > 0) {
@@ -243,7 +309,9 @@ export async function collectNodeManifests(
       .map((path) => `${path}/package.json`);
   }
 
-  const manifestPaths = [...new Set([...(rootManifest ? [rootManifest] : []), ...workspaceManifest])].sort();
+  const manifestPaths = [
+    ...new Set([...(rootManifest ? [rootManifest] : []), ...workspaceManifest]),
+  ].sort();
   const manifests: Manifest[] = [];
   const dependencyDeclarations: DependencyOccurrenceFact[] = [];
   const workspacesByName = new Map<string, string>();
@@ -251,24 +319,46 @@ export async function collectNodeManifests(
   let parseFailed = false;
 
   for (const path of manifestPaths) {
+    const manifestText = await readUtf8(source, sink, "node-manifests", path);
+    if (manifestText === null) {
+      parseFailed = true;
+      continue;
+    }
     let parsed: unknown;
     try {
-      parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await source.read(path)));
+      parsed = JSON.parse(manifestText);
     } catch {
       parseFailed = true;
-      addIssue(sink, "node-manifests", "parse_failed", path, "Package manifest is malformed or exceeds configured limits.");
+      addIssue(
+        sink,
+        "node-manifests",
+        "parse_failed",
+        path,
+        "Package manifest is malformed or exceeds configured limits.",
+      );
       continue;
     }
     const input = record(parsed);
     if (!input) {
       parseFailed = true;
-      addIssue(sink, "node-manifests", "parse_failed", path, "Package manifest must be a JSON object.");
+      addIssue(
+        sink,
+        "node-manifests",
+        "parse_failed",
+        path,
+        "Package manifest must be a JSON object.",
+      );
       continue;
     }
 
     const rootPath = path === "package.json" ? "." : path.slice(0, -"/package.json".length);
     const rawName = text(input.name);
-    const name = rawName && sanitisePackageName(rawName) ? rawName : rootPath === "." ? "root project" : rootPath;
+    const name =
+      rawName && sanitisePackageName(rawName)
+        ? rawName
+        : rootPath === "."
+          ? "root project"
+          : rootPath;
     const dependencies = {
       ...stringRecord(input.dependencies),
       ...stringRecord(input.devDependencies),
@@ -276,61 +366,123 @@ export async function collectNodeManifests(
       ...stringRecord(input.peerDependencies),
     };
     const dependencyNames = Object.keys(dependencies).sort();
-    const validDependencyNames = dependencyNames.filter((dependencyName) => sanitisePackageName(dependencyName));
+    const validDependencyNames = dependencyNames.filter((dependencyName) =>
+      sanitisePackageName(dependencyName),
+    );
     const names = new Set(validDependencyNames);
     const roles = inferLayer(names);
-    const scripts = Object.keys(stringRecord(input.scripts)).filter((script) => /^[A-Za-z0-9:_-]{1,100}$/.test(script)).sort();
-    const evidenceId = addEvidence(sink, "file", path, null, "Package manifest metadata; script bodies are never stored.", 1);
+    const scripts = Object.keys(stringRecord(input.scripts))
+      .filter((script) => /^[A-Za-z0-9:_-]{1,100}$/.test(script))
+      .sort();
+    const evidenceId = addEvidence(
+      sink,
+      "file",
+      path,
+      null,
+      "Package manifest metadata; script bodies are never stored.",
+      1,
+    );
     configEvidenceByPath.set(path, evidenceId);
     const version = text(input.version);
     const workspaceComponentIds = roles.map(({ kind, layer }) =>
       workspaceComponent(sink, path, name, kind, layer, evidenceId, version),
     );
-    const componentId = workspaceComponentIds[0] ?? stableId("component", sink.projectId, "package", path, name);
+    const componentId =
+      workspaceComponentIds[0] ?? stableId("component", sink.projectId, "package", path, name);
 
     const nodeRange = text(record(input.engines)?.node);
     if (nodeRange) {
       const runtimeId = stableId("component", sink.projectId, "runtime", path, "node");
-      addComponent(sink, {
-        id: runtimeId,
-        kind: "runtime",
-        layer: "shared",
-        name: `Node.js runtime declared by ${name}`,
-        locator: path,
-        environmentIds: [],
-        versions: [{ facet: "declared", value: sanitiseVersion(nodeRange), environmentId: null, observedAt: sink.capturedAt, evidenceIds: [evidenceId] }],
-        observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "high", evidenceIds: [evidenceId] }],
-        evidenceIds: [evidenceId],
-      }, "node-manifests");
+      addComponent(
+        sink,
+        {
+          id: runtimeId,
+          kind: "runtime",
+          layer: "shared",
+          name: `Node.js runtime declared by ${name}`,
+          locator: path,
+          environmentIds: [],
+          versions: [
+            {
+              facet: "declared",
+              value: sanitiseVersion(nodeRange),
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              evidenceIds: [evidenceId],
+            },
+          ],
+          observations: [
+            {
+              dimension: "configuration",
+              state: "configured",
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              confidence: "high",
+              evidenceIds: [evidenceId],
+            },
+          ],
+          evidenceIds: [evidenceId],
+        },
+        "node-manifests",
+      );
     }
 
-    if (scripts.some((script) => script === "test" || script.startsWith("test:")) || [...names].some((dependency) => testLibraries.has(dependency))) {
+    if (
+      scripts.some((script) => script === "test" || script.startsWith("test:")) ||
+      [...names].some((dependency) => testLibraries.has(dependency))
+    ) {
       const testId = stableId("component", sink.projectId, "test_suite", path, name);
-      addComponent(sink, {
-        id: testId,
-        kind: "test_suite",
-        layer: "testing",
-        name: `${name} test suite`,
-        locator: path,
-        environmentIds: [],
-        versions: [],
-        observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "high", evidenceIds: [evidenceId] }],
-        evidenceIds: [evidenceId],
-      }, "node-manifests");
+      addComponent(
+        sink,
+        {
+          id: testId,
+          kind: "test_suite",
+          layer: "testing",
+          name: `${name} test suite`,
+          locator: path,
+          environmentIds: [],
+          versions: [],
+          observations: [
+            {
+              dimension: "configuration",
+              state: "configured",
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              confidence: "high",
+              evidenceIds: [evidenceId],
+            },
+          ],
+          evidenceIds: [evidenceId],
+        },
+        "node-manifests",
+      );
     }
 
     for (const driver of [...names].filter((dependency) => databaseDrivers.has(dependency))) {
-      addComponent(sink, {
-        id: stableId("component", sink.projectId, "database", path, driver),
-        kind: "database",
-        layer: "data",
-        name: `Database driver inferred from ${driver}`,
-        locator: path,
-        environmentIds: [],
-        versions: [],
-        observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "low", evidenceIds: [evidenceId] }],
-        evidenceIds: [evidenceId],
-      }, "node-manifests");
+      addComponent(
+        sink,
+        {
+          id: stableId("component", sink.projectId, "database", path, driver),
+          kind: "database",
+          layer: "data",
+          name: `Database driver inferred from ${driver}`,
+          locator: path,
+          environmentIds: [],
+          versions: [],
+          observations: [
+            {
+              dimension: "configuration",
+              state: "configured",
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              confidence: "low",
+              evidenceIds: [evidenceId],
+            },
+          ],
+          evidenceIds: [evidenceId],
+        },
+        "node-manifests",
+      );
     }
 
     const dependencyMap = new Map<string, { range: string; evidenceId: string }>();
@@ -341,8 +493,12 @@ export async function collectNodeManifests(
       });
     }
     const displayWorkspace = rootPath;
-    const formatterConfigPresent = allPaths.some((candidate) => formatterConfigNames.has(candidate.split("/").at(-1)!.toLowerCase()));
-    const formatterDependencyPresent = [...names].some((dependencyName) => formatters.has(dependencyName));
+    const formatterConfigPresent = allPaths.some((candidate) =>
+      formatterConfigNames.has(candidate.split("/").at(-1)!.toLowerCase()),
+    );
+    const formatterDependencyPresent = [...names].some((dependencyName) =>
+      formatters.has(dependencyName),
+    );
     const workspaceFact: WorkspaceFact = {
       path: displayWorkspace,
       componentId,
@@ -368,10 +524,30 @@ export async function collectNodeManifests(
   }
 
   if (manifestPaths.length === 0) {
-    addCoverage(sink, "node-manifests", "unsupported", "Node manifests", "No supported package.json manifest was found.");
-    addIssue(sink, "node-manifests", "unsupported_input", null, "No supported Node project manifest was found.");
+    addCoverage(
+      sink,
+      "node-manifests",
+      "unsupported",
+      "Node manifests",
+      "No supported package.json manifest was found.",
+    );
+    addIssue(
+      sink,
+      "node-manifests",
+      "unsupported_input",
+      null,
+      "No supported Node project manifest was found.",
+    );
   } else {
-    addCoverage(sink, "node-manifests", parseFailed ? "failed" : "supported", "Node manifests and declared dependencies", parseFailed ? "One or more package manifests could not be parsed; remaining results are partial." : "Parsed package manifests and selected metadata only.");
+    addCoverage(
+      sink,
+      "node-manifests",
+      parseFailed ? "failed" : "supported",
+      "Node manifests and declared dependencies",
+      parseFailed
+        ? "One or more package manifests could not be parsed; remaining results are partial."
+        : "Parsed package manifests and selected metadata only.",
+    );
   }
 
   const workspaceNames = [...workspacesByName.entries()];
@@ -380,23 +556,37 @@ export async function collectNodeManifests(
     for (const [dependencyName, declaration] of manifest.dependencies) {
       declaredNames.add(dependencyName);
       const otherWorkspaceId = workspacesByName.get(dependencyName);
-      if (otherWorkspaceId && (declaration.range === "workspace:*" || declaration.range.startsWith("workspace:"))) {
-        addRelationship(sink, {
-          id: stableId("relationship", sink.projectId, manifest.componentId, otherWorkspaceId, "depends_on"),
-          fromId: manifest.componentId,
-          toId: otherWorkspaceId,
-          type: "depends_on",
-          environmentIds: [],
-          confidence: "high",
-          evidenceIds: [declaration.evidenceId],
-        }, "node-manifests");
+      if (
+        otherWorkspaceId &&
+        (declaration.range === "workspace:*" || declaration.range.startsWith("workspace:"))
+      ) {
+        addRelationship(
+          sink,
+          {
+            id: stableId(
+              "relationship",
+              sink.projectId,
+              manifest.componentId,
+              otherWorkspaceId,
+              "depends_on",
+            ),
+            fromId: manifest.componentId,
+            toId: otherWorkspaceId,
+            type: "depends_on",
+            environmentIds: [],
+            confidence: "high",
+            evidenceIds: [declaration.evidenceId],
+          },
+          "node-manifests",
+        );
       }
     }
   }
   // Retain declared packages as separate records until the lock collector links exact resolutions.
   for (const manifest of manifests) {
     for (const [dependencyName, declaration] of manifest.dependencies) {
-      if (workspacesByName.has(dependencyName) && declaration.range.startsWith("workspace:")) continue;
+      if (workspacesByName.has(dependencyName) && declaration.range.startsWith("workspace:"))
+        continue;
       dependencyDeclarations.push({
         name: dependencyName,
         version: declaration.range,
@@ -436,40 +626,108 @@ export async function collectNpmLock(
   selectedCollectors: ReadonlySet<string> | null,
 ): Promise<void> {
   if (selectedCollectors && !selectedCollectors.has("npm-lock")) {
-    addCoverage(sink, "npm-lock", "not_configured", "npm lockfile", "Disabled by project configuration.");
+    addCoverage(
+      sink,
+      "npm-lock",
+      "not_configured",
+      "npm lockfile",
+      "Disabled by project configuration.",
+    );
     return;
   }
-  const lockPath = source.has("package-lock.json") && !isIgnoredByConfig("package-lock.json", config.ignorePatterns) ? "package-lock.json" : null;
+  const lockPath =
+    source.has("package-lock.json") &&
+    !isIgnoredByConfig("package-lock.json", config.ignorePatterns)
+      ? "package-lock.json"
+      : null;
   if (!lockPath) {
-    const alternate = source.paths().find((path) => ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"].includes(path));
+    const alternate = source
+      .paths()
+      .find((path) => ["pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"].includes(path));
     if (alternate) {
-      addCoverage(sink, "npm-lock", "unsupported", alternate, "A non-npm lockfile was found; exact package resolutions were not interpreted.");
-      addIssue(sink, "npm-lock", "unsupported_input", alternate, "This lockfile format is not supported in the current release.");
+      addCoverage(
+        sink,
+        "npm-lock",
+        "unsupported",
+        alternate,
+        "A non-npm lockfile was found; exact package resolutions were not interpreted.",
+      );
+      addIssue(
+        sink,
+        "npm-lock",
+        "unsupported_input",
+        alternate,
+        "This lockfile format is not supported in the current release.",
+      );
     } else {
-      addCoverage(sink, "npm-lock", manifestResult.supported ? "not_configured" : "unsupported", "package-lock.json", manifestResult.supported ? "No npm lockfile was found; resolved package versions remain unknown." : "No Node project was found to provide an npm lockfile.");
+      addCoverage(
+        sink,
+        "npm-lock",
+        manifestResult.supported ? "not_configured" : "unsupported",
+        "package-lock.json",
+        manifestResult.supported
+          ? "No npm lockfile was found; resolved package versions remain unknown."
+          : "No Node project was found to provide an npm lockfile.",
+      );
     }
     await createUnresolvedDeclarations(sink, facts, manifestResult.dependencyDeclarations);
     return;
   }
 
+  const lockText = await readUtf8(source, sink, "npm-lock", lockPath);
+  if (lockText === null) {
+    await createUnresolvedDeclarations(sink, facts, manifestResult.dependencyDeclarations);
+    return;
+  }
   let parsed: unknown;
   try {
-    parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(await source.read(lockPath)));
+    parsed = JSON.parse(lockText);
   } catch {
-    addCoverage(sink, "npm-lock", "failed", lockPath, "npm lockfile is malformed or exceeds configured limits.");
-    addIssue(sink, "npm-lock", "parse_failed", lockPath, "npm lockfile could not be safely parsed.");
+    addCoverage(
+      sink,
+      "npm-lock",
+      "failed",
+      lockPath,
+      "npm lockfile is malformed or exceeds configured limits.",
+    );
+    addIssue(
+      sink,
+      "npm-lock",
+      "parse_failed",
+      lockPath,
+      "npm lockfile could not be safely parsed.",
+    );
     await createUnresolvedDeclarations(sink, facts, manifestResult.dependencyDeclarations);
     return;
   }
   const lock = record(parsed);
   if (!lock || ![2, 3].includes(Number(lock.lockfileVersion)) || !record(lock.packages)) {
-    addCoverage(sink, "npm-lock", "unsupported", lockPath, "Only npm lockfile versions 2 and 3 with a packages map are supported.");
-    addIssue(sink, "npm-lock", "unsupported_input", lockPath, "npm lockfile must use version 2 or 3 with package records.");
+    addCoverage(
+      sink,
+      "npm-lock",
+      "unsupported",
+      lockPath,
+      "Only npm lockfile versions 2 and 3 with a packages map are supported.",
+    );
+    addIssue(
+      sink,
+      "npm-lock",
+      "unsupported_input",
+      lockPath,
+      "npm lockfile must use version 2 or 3 with package records.",
+    );
     await createUnresolvedDeclarations(sink, facts, manifestResult.dependencyDeclarations);
     return;
   }
 
-  const lockEvidenceId = addEvidence(sink, "file", lockPath, null, "npm lockfile package metadata; scripts are never executed.", 1);
+  const lockEvidenceId = addEvidence(
+    sink,
+    "file",
+    lockPath,
+    null,
+    "npm lockfile package metadata; scripts are never executed.",
+    1,
+  );
   const entries = record(lock.packages)!;
   const packageRecords = new Map<string, LockPackage>();
   const workspaceComponents = new Map<string, string>(
@@ -478,76 +736,232 @@ export async function collectNpmLock(
   const pathToNameVersion = new Map<string, { name: string; version: string }>();
   let partial = false;
 
-  for (const [locator, rawEntry] of Object.entries(entries).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
-    if (locator === "" || !locator.includes("node_modules/") || !isSafeRelativePath(locator)) continue;
+  for (const [locator, rawEntry] of Object.entries(entries).sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  )) {
+    if (locator === "" || !locator.includes("node_modules/") || !isSafeRelativePath(locator))
+      continue;
     const entry = record(rawEntry);
     if (!entry || entry.link === true) continue;
     const name = lockPackageName(locator, entry.name);
     const version = text(entry.version);
     if (!name || !version) {
       partial = true;
-      addIssue(sink, "npm-lock", "unsupported_input", lockPath, "A lock entry lacked a safe package name or version and was skipped.");
+      addIssue(
+        sink,
+        "npm-lock",
+        "unsupported_input",
+        lockPath,
+        "A lock entry lacked a safe package name or version and was skipped.",
+      );
       continue;
     }
     const safeVersion = sanitiseVersion(version);
-    if (safeVersion === "unsupported-specifier" || safeVersion === "non-registry-specifier" || safeVersion.includes(" ")) {
+    if (
+      safeVersion === "unsupported-specifier" ||
+      safeVersion === "non-registry-specifier" ||
+      safeVersion.includes(" ")
+    ) {
       partial = true;
-      addIssue(sink, "npm-lock", "unsupported_input", lockPath, "A lock entry did not contain a safe semver resolution and was skipped.");
+      addIssue(
+        sink,
+        "npm-lock",
+        "unsupported_input",
+        lockPath,
+        "A lock entry did not contain a safe semver resolution and was skipped.",
+      );
       continue;
     }
     const componentId = stableId("component", sink.projectId, "package", locator, name, version);
-    const dependencies = Object.keys(stringRecord(entry.dependencies)).filter((dependency) => sanitisePackageName(dependency)).sort();
-    addComponent(sink, {
-      id: componentId,
-      kind: "package",
-      layer: "shared",
-      name: `${name}@${version}`,
+    const dependencies = Object.keys(stringRecord(entry.dependencies))
+      .filter((dependency) => sanitisePackageName(dependency))
+      .sort();
+    addComponent(
+      sink,
+      {
+        id: componentId,
+        kind: "package",
+        layer: "shared",
+        name: `${name}@${version}`,
+        locator,
+        environmentIds: [],
+        versions: [
+          {
+            facet: "resolved",
+            value: version,
+            environmentId: null,
+            observedAt: sink.capturedAt,
+            evidenceIds: [lockEvidenceId],
+          },
+        ],
+        observations: [
+          {
+            dimension: "configuration",
+            state: "configured",
+            environmentId: null,
+            observedAt: sink.capturedAt,
+            confidence: "high",
+            evidenceIds: [lockEvidenceId],
+          },
+        ],
+        evidenceIds: [lockEvidenceId],
+      },
+      "npm-lock",
+    );
+    packageRecords.set(locator, {
       locator,
-      environmentIds: [],
-      versions: [{ facet: "resolved", value: version, environmentId: null, observedAt: sink.capturedAt, evidenceIds: [lockEvidenceId] }],
-      observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "high", evidenceIds: [lockEvidenceId] }],
-      evidenceIds: [lockEvidenceId],
-    }, "npm-lock");
-    packageRecords.set(locator, { locator, name, version, dependencies, evidenceId: lockEvidenceId, componentId });
+      name,
+      version,
+      dependencies,
+      evidenceId: lockEvidenceId,
+      componentId,
+    });
     pathToNameVersion.set(locator, { name, version });
   }
 
   for (const manifest of manifestResult.manifests) {
     for (const [dependencyName, declaration] of manifest.dependencies) {
-      if (workspaceComponents.has(dependencyName) && declaration.range.startsWith("workspace:")) continue;
-      const resolvedLocator = resolveInstalledPackage(manifest.path, dependencyName, packageRecords);
+      if (workspaceComponents.has(dependencyName) && declaration.range.startsWith("workspace:"))
+        continue;
+      const resolvedLocator = resolveInstalledPackage(
+        manifest.path,
+        dependencyName,
+        packageRecords,
+      );
       if (!resolvedLocator) {
         partial = true;
         const virtualLocator = nodeModulesPath(manifest.path, dependencyName);
-        const componentId = stableId("component", sink.projectId, "package", manifest.path, dependencyName, declaration.range);
+        const componentId = stableId(
+          "component",
+          sink.projectId,
+          "package",
+          manifest.path,
+          dependencyName,
+          declaration.range,
+        );
         const existing = sink.components.find((component) => component.id === componentId);
         if (!existing) {
-          addComponent(sink, {
-            id: componentId,
-            kind: "package",
-            layer: "shared",
-            name: dependencyName,
-            locator: virtualLocator,
-            environmentIds: [],
-            versions: [{ facet: "declared", value: declaration.range, environmentId: null, observedAt: sink.capturedAt, evidenceIds: [declaration.evidenceId] }],
-            observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "medium", evidenceIds: [declaration.evidenceId] }],
-            evidenceIds: [declaration.evidenceId],
-          }, "npm-lock");
+          addComponent(
+            sink,
+            {
+              id: componentId,
+              kind: "package",
+              layer: "shared",
+              name: dependencyName,
+              locator: virtualLocator,
+              environmentIds: [],
+              versions: [
+                {
+                  facet: "declared",
+                  value: declaration.range,
+                  environmentId: null,
+                  observedAt: sink.capturedAt,
+                  evidenceIds: [declaration.evidenceId] as [string, ...string[]],
+                },
+              ],
+              observations: [
+                {
+                  dimension: "configuration",
+                  state: "configured",
+                  environmentId: null,
+                  observedAt: sink.capturedAt,
+                  confidence: "medium",
+                  evidenceIds: [declaration.evidenceId],
+                },
+              ],
+              evidenceIds: [declaration.evidenceId],
+            },
+            "npm-lock",
+          );
         }
-        addRelationship(sink, { id: stableId("relationship", sink.projectId, manifest.componentId, componentId, "depends_on"), fromId: manifest.componentId, toId: componentId, type: "depends_on", environmentIds: [], confidence: "medium", evidenceIds: [declaration.evidenceId] }, "npm-lock");
-        facts.dependencies.push({ name: dependencyName, version: declaration.range, declaredRange: declaration.range, resolved: false, workspacePath: manifest.path, componentId, manifestEvidenceId: declaration.evidenceId, lockEvidenceId: null, direct: true });
+        addRelationship(
+          sink,
+          {
+            id: stableId(
+              "relationship",
+              sink.projectId,
+              manifest.componentId,
+              componentId,
+              "depends_on",
+            ),
+            fromId: manifest.componentId,
+            toId: componentId,
+            type: "depends_on",
+            environmentIds: [],
+            confidence: "medium",
+            evidenceIds: [declaration.evidenceId],
+          },
+          "npm-lock",
+        );
+        facts.dependencies.push({
+          name: dependencyName,
+          version: declaration.range,
+          declaredRange: declaration.range,
+          resolved: false,
+          workspacePath: manifest.path,
+          componentId,
+          manifestEvidenceId: declaration.evidenceId,
+          lockEvidenceId: null,
+          direct: true,
+        });
         continue;
       }
 
       const target = packageRecords.get(resolvedLocator)!;
-      const targetComponent = sink.components.find((component) => component.id === target.componentId);
-      if (targetComponent && !targetComponent.versions.some((version) => version.facet === "declared" && version.value === declaration.range && version.evidenceIds.includes(declaration.evidenceId))) {
-        targetComponent.versions.push({ facet: "declared", value: declaration.range, environmentId: null, observedAt: sink.capturedAt, evidenceIds: [declaration.evidenceId] });
-        targetComponent.evidenceIds = [...new Set([...targetComponent.evidenceIds, declaration.evidenceId])].sort();
+      const targetComponent = sink.components.find(
+        (component) => component.id === target.componentId,
+      );
+      if (
+        targetComponent &&
+        !targetComponent.versions.some(
+          (version) =>
+            version.facet === "declared" &&
+            version.value === declaration.range &&
+            version.evidenceIds.includes(declaration.evidenceId),
+        )
+      ) {
+        targetComponent.versions.push({
+          facet: "declared",
+          value: declaration.range,
+          environmentId: null,
+          observedAt: sink.capturedAt,
+          evidenceIds: [declaration.evidenceId],
+        });
+        targetComponent.evidenceIds = [
+          ...new Set([...targetComponent.evidenceIds, declaration.evidenceId]),
+        ].sort() as [string, ...string[]];
       }
       // Preserve the declared range on the same workspace-scoped edge fact, not as an observed deployed version.
-      addRelationship(sink, { id: stableId("relationship", sink.projectId, manifest.componentId, target.componentId, "depends_on"), fromId: manifest.componentId, toId: target.componentId, type: "depends_on", environmentIds: [], confidence: "high", evidenceIds: [declaration.evidenceId, target.evidenceId] }, "npm-lock");
-      facts.dependencies.push({ name: dependencyName, version: target.version, declaredRange: declaration.range, resolved: true, workspacePath: manifest.path, componentId: target.componentId, manifestEvidenceId: declaration.evidenceId, lockEvidenceId: target.evidenceId, direct: true });
+      addRelationship(
+        sink,
+        {
+          id: stableId(
+            "relationship",
+            sink.projectId,
+            manifest.componentId,
+            target.componentId,
+            "depends_on",
+          ),
+          fromId: manifest.componentId,
+          toId: target.componentId,
+          type: "depends_on",
+          environmentIds: [],
+          confidence: "high",
+          evidenceIds: [declaration.evidenceId, target.evidenceId],
+        },
+        "npm-lock",
+      );
+      facts.dependencies.push({
+        name: dependencyName,
+        version: target.version,
+        declaredRange: declaration.range,
+        resolved: true,
+        workspacePath: manifest.path,
+        componentId: target.componentId,
+        manifestEvidenceId: declaration.evidenceId,
+        lockEvidenceId: target.evidenceId,
+        direct: true,
+      });
     }
   }
 
@@ -559,15 +973,51 @@ export async function collectNpmLock(
         continue;
       }
       const child = packageRecords.get(childLocator)!;
-      addRelationship(sink, { id: stableId("relationship", sink.projectId, parent.componentId, child.componentId, "depends_on"), fromId: parent.componentId, toId: child.componentId, type: "depends_on", environmentIds: [], confidence: "high", evidenceIds: [parent.evidenceId, child.evidenceId] }, "npm-lock");
+      addRelationship(
+        sink,
+        {
+          id: stableId(
+            "relationship",
+            sink.projectId,
+            parent.componentId,
+            child.componentId,
+            "depends_on",
+          ),
+          fromId: parent.componentId,
+          toId: child.componentId,
+          type: "depends_on",
+          environmentIds: [],
+          confidence: "high",
+          evidenceIds: [parent.evidenceId, child.evidenceId],
+        },
+        "npm-lock",
+      );
       const owner = nearestWorkspace(parent.locator, manifestResult.manifests);
-      facts.dependencies.push({ name: child.name, version: child.version, declaredRange: null, resolved: true, workspacePath: owner?.path ?? ".", componentId: child.componentId, manifestEvidenceId: parent.evidenceId, lockEvidenceId: child.evidenceId, direct: false });
+      facts.dependencies.push({
+        name: child.name,
+        version: child.version,
+        declaredRange: null,
+        resolved: true,
+        workspacePath: owner?.path ?? ".",
+        componentId: child.componentId,
+        manifestEvidenceId: parent.evidenceId,
+        lockEvidenceId: child.evidenceId,
+        direct: false,
+      });
     }
   }
 
   void config;
   void pathToNameVersion;
-  addCoverage(sink, "npm-lock", partial ? "failed" : "supported", lockPath, partial ? "Some dependency resolutions were missing or unsupported; resolved package records are partial." : `Parsed npm lockfile version ${lock.lockfileVersion} and resolved package metadata.`);
+  addCoverage(
+    sink,
+    "npm-lock",
+    partial ? "failed" : "supported",
+    lockPath,
+    partial
+      ? "Some dependency resolutions were missing or unsupported; resolved package records are partial."
+      : `Parsed npm lockfile version ${lock.lockfileVersion} and resolved package metadata.`,
+  );
 }
 
 async function createUnresolvedDeclarations(
@@ -576,22 +1026,69 @@ async function createUnresolvedDeclarations(
   declarations: DependencyOccurrenceFact[],
 ): Promise<void> {
   for (const declaration of declarations) {
-    const componentId = stableId("component", sink.projectId, "package", declaration.workspacePath, declaration.name, declaration.version);
+    const componentId = stableId(
+      "component",
+      sink.projectId,
+      "package",
+      declaration.workspacePath,
+      declaration.name,
+      declaration.version,
+    );
     if (!sink.components.some((component) => component.id === componentId)) {
-      addComponent(sink, {
-        id: componentId,
-        kind: "package",
-        layer: "shared",
-        name: declaration.name,
-        locator: nodeModulesPath(declaration.workspacePath, declaration.name),
-        environmentIds: [],
-        versions: [{ facet: "declared", value: declaration.version, environmentId: null, observedAt: sink.capturedAt, evidenceIds: [declaration.manifestEvidenceId] }],
-        observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "medium", evidenceIds: [declaration.manifestEvidenceId] }],
-        evidenceIds: [declaration.manifestEvidenceId],
-      }, "npm-lock");
+      addComponent(
+        sink,
+        {
+          id: componentId,
+          kind: "package",
+          layer: "shared",
+          name: declaration.name,
+          locator: nodeModulesPath(declaration.workspacePath, declaration.name),
+          environmentIds: [],
+          versions: [
+            {
+              facet: "declared",
+              value: declaration.version,
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              evidenceIds: [declaration.manifestEvidenceId],
+            },
+          ],
+          observations: [
+            {
+              dimension: "configuration",
+              state: "configured",
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              confidence: "medium",
+              evidenceIds: [declaration.manifestEvidenceId],
+            },
+          ],
+          evidenceIds: [declaration.manifestEvidenceId],
+        },
+        "npm-lock",
+      );
     }
     const workspace = facts.workspaces.find((item) => item.path === declaration.workspacePath);
-    if (workspace) addRelationship(sink, { id: stableId("relationship", sink.projectId, workspace.componentId, componentId, "depends_on"), fromId: workspace.componentId, toId: componentId, type: "depends_on", environmentIds: [], confidence: "medium", evidenceIds: [declaration.manifestEvidenceId] }, "node-manifests");
+    if (workspace)
+      addRelationship(
+        sink,
+        {
+          id: stableId(
+            "relationship",
+            sink.projectId,
+            workspace.componentId,
+            componentId,
+            "depends_on",
+          ),
+          fromId: workspace.componentId,
+          toId: componentId,
+          type: "depends_on",
+          environmentIds: [],
+          confidence: "medium",
+          evidenceIds: [declaration.manifestEvidenceId],
+        },
+        "node-manifests",
+      );
     facts.dependencies.push({ ...declaration, componentId });
   }
 }
@@ -601,7 +1098,10 @@ function resolveInstalledPackage(
   dependencyName: string,
   records: Map<string, LockPackage>,
 ): string | null {
-  const candidates = [nodeModulesPath(workspacePath, dependencyName), nodeModulesPath(".", dependencyName)];
+  const candidates = [
+    nodeModulesPath(workspacePath, dependencyName),
+    nodeModulesPath(".", dependencyName),
+  ];
   return candidates.find((candidate) => records.has(candidate)) ?? null;
 }
 
@@ -626,41 +1126,95 @@ export async function collectGitHubActions(
   source: SafeSource,
   sink: CollectorSink,
   facts: DiscoveryFacts,
+  config: ConfigCollection,
   selectedCollectors: ReadonlySet<string> | null,
 ): Promise<void> {
   const collector = "github-actions" as const;
   if (selectedCollectors && !selectedCollectors.has(collector)) {
-    addCoverage(sink, collector, "not_configured", ".github/workflows", "Disabled by project configuration.");
+    addCoverage(
+      sink,
+      collector,
+      "not_configured",
+      ".github/workflows",
+      "Disabled by project configuration.",
+    );
     return;
   }
-  const paths = source.paths().filter((path) => /^\.github\/workflows\/[^/]+\.ya?ml$/i.test(path) && !isIgnoredByConfig(path, config.ignorePatterns));
+  const paths = source
+    .paths()
+    .filter(
+      (path) =>
+        /^\.github\/workflows\/[^/]+\.ya?ml$/i.test(path) &&
+        !isIgnoredByConfig(path, config.ignorePatterns),
+    );
   if (paths.length === 0) {
-    addCoverage(sink, collector, "not_configured", ".github/workflows", "No GitHub Actions workflow files were found.");
+    addCoverage(
+      sink,
+      collector,
+      "not_configured",
+      ".github/workflows",
+      "No GitHub Actions workflow files were found.",
+    );
     return;
   }
 
   let anyFailed = false;
   for (const path of paths) {
-    const evidenceId = addEvidence(sink, "file", path, null, "GitHub Actions workflow metadata; expressions and commands are not evaluated.", 1);
+    const evidenceId = addEvidence(
+      sink,
+      "file",
+      path,
+      null,
+      "GitHub Actions workflow metadata; expressions and commands are not evaluated.",
+      1,
+    );
     const pipelineId = stableId("component", sink.projectId, "pipeline", path);
-    addComponent(sink, {
-      id: pipelineId,
-      kind: "pipeline",
-      layer: "delivery",
-      name: path.split("/").at(-1)!,
-      locator: path,
-      environmentIds: [],
-      versions: [],
-      observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "high", evidenceIds: [evidenceId] }],
-      evidenceIds: [evidenceId],
-    }, collector);
+    addComponent(
+      sink,
+      {
+        id: pipelineId,
+        kind: "pipeline",
+        layer: "delivery",
+        name: path.split("/").at(-1)!,
+        locator: path,
+        environmentIds: [],
+        versions: [],
+        observations: [
+          {
+            dimension: "configuration",
+            state: "configured",
+            environmentId: null,
+            observedAt: sink.capturedAt,
+            confidence: "high",
+            evidenceIds: [evidenceId],
+          },
+        ],
+        evidenceIds: [evidenceId],
+      },
+      collector,
+    );
 
     let sourceText: string;
     let parsed: UnknownRecord | null;
     let parseStatus: WorkflowFact["parseStatus"] = "complete";
     try {
-      const bytes = await source.read(path);
-      sourceText = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+      const loadedText = await readUtf8(source, sink, collector, path);
+      if (loadedText === null) {
+        anyFailed = true;
+        parseStatus = "failed";
+        facts.workflows.push({
+          path,
+          pipelineComponentId: pipelineId,
+          workflowEvidenceId: evidenceId,
+          parseStatus,
+          hasDynamicNeeds: false,
+          jobs: [],
+          hasLiteralTestGate: false,
+          ambiguityReasons: ["Workflow could not be read within the configured bounds."],
+        });
+        continue;
+      }
+      sourceText = loadedText;
       const document = parseDocument(sourceText, { uniqueKeys: true });
       if (document.errors.length > 0) throw new Error("syntax");
       parsed = record(document.toJS({ maxAliasCount: 50 }));
@@ -668,8 +1222,23 @@ export async function collectGitHubActions(
     } catch {
       anyFailed = true;
       parseStatus = "failed";
-      addIssue(sink, collector, "parse_failed", path, "Workflow YAML is malformed or exceeds parser limits.");
-      facts.workflows.push({ path, pipelineComponentId: pipelineId, workflowEvidenceId: evidenceId, parseStatus, hasDynamicNeeds: false, jobs: [], hasLiteralTestGate: false, ambiguityReasons: ["Workflow could not be fully parsed."] });
+      addIssue(
+        sink,
+        collector,
+        "parse_failed",
+        path,
+        "Workflow YAML is malformed or exceeds parser limits.",
+      );
+      facts.workflows.push({
+        path,
+        pipelineComponentId: pipelineId,
+        workflowEvidenceId: evidenceId,
+        parseStatus,
+        hasDynamicNeeds: false,
+        jobs: [],
+        hasLiteralTestGate: false,
+        ambiguityReasons: ["Workflow could not be fully parsed."],
+      });
       continue;
     }
 
@@ -677,10 +1246,21 @@ export async function collectGitHubActions(
     if (!jobsInput) {
       anyFailed = true;
       addIssue(sink, collector, "parse_failed", path, "Workflow has no jobs mapping.");
-      facts.workflows.push({ path, pipelineComponentId: pipelineId, workflowEvidenceId: evidenceId, parseStatus: "failed", hasDynamicNeeds: false, jobs: [], hasLiteralTestGate: false, ambiguityReasons: ["Workflow has no jobs mapping."] });
+      facts.workflows.push({
+        path,
+        pipelineComponentId: pipelineId,
+        workflowEvidenceId: evidenceId,
+        parseStatus: "failed",
+        hasDynamicNeeds: false,
+        jobs: [],
+        hasLiteralTestGate: false,
+        ambiguityReasons: ["Workflow has no jobs mapping."],
+      });
       continue;
     }
-    const validJobs = Object.entries(jobsInput).filter(([id, job]) => /^[A-Za-z0-9_-]{1,100}$/.test(id) && record(job));
+    const validJobs = Object.entries(jobsInput).filter(
+      ([id, job]) => /^[A-Za-z0-9_-]{1,100}$/.test(id) && record(job),
+    );
     const invalidJobs = validJobs.length !== Object.keys(jobsInput).length;
     const ambiguityReasons: string[] = [];
     let hasDynamicNeeds = false;
@@ -696,28 +1276,40 @@ export async function collectGitHubActions(
     for (const [id, rawJob] of validJobs) {
       const job = record(rawJob)!;
       const rawNeeds = job.needs;
-      const needsValues = rawNeeds === undefined ? [] : Array.isArray(rawNeeds) ? rawNeeds : [rawNeeds];
-      const dynamic = needsValues.some((value) => typeof value !== "string" || value.includes("${{"));
+      const needsValues =
+        rawNeeds === undefined ? [] : Array.isArray(rawNeeds) ? rawNeeds : [rawNeeds];
+      const dynamic = needsValues.some(
+        (value) => typeof value !== "string" || value.includes("${{"),
+      );
       if (dynamic) {
         hasDynamicNeeds = true;
         parseStatus = "partial";
         ambiguityReasons.push("Job prerequisites contain expressions or non-literal values.");
       }
-      const literalNeeds = needsValues.filter((value): value is string => typeof value === "string" && !value.includes("${{"));
+      const literalNeeds = needsValues.filter(
+        (value): value is string => typeof value === "string" && !value.includes("${{"),
+      );
       const missingNeeds = dynamic ? [] : literalNeeds.filter((value) => !jobIds.has(value));
       const needs = literalNeeds.filter((value) => jobIds.has(value));
       if (missingNeeds.length > 0) {
         anyFailed = true;
         parseStatus = "partial";
         ambiguityReasons.push("A literal job prerequisite did not match a declared job ID.");
-        addIssue(sink, collector, "unsupported_input", path, "A workflow job references a missing literal prerequisite.");
+        addIssue(
+          sink,
+          collector,
+          "unsupported_input",
+          path,
+          "A workflow job references a missing literal prerequisite.",
+        );
       }
 
       const runScripts = new Set<string>();
       const steps = Array.isArray(job.steps) ? job.steps : [];
       const labels: string[] = [];
       let hasEnvironment = typeof job.environment === "string";
-      if (record(job.environment) && typeof record(job.environment)!.name === "string") hasEnvironment = true;
+      if (record(job.environment) && typeof record(job.environment)!.name === "string")
+        hasEnvironment = true;
       if (typeof job.name === "string") labels.push(job.name);
       for (const rawStep of steps) {
         const step = record(rawStep);
@@ -728,21 +1320,53 @@ export async function collectGitHubActions(
           for (const script of extractScriptNames(step.run, allScriptNames)) runScripts.add(script);
         }
       }
-      const deploysTarget = hasEnvironment || labels.some((label) => /\bdeploy(?:ment)?\b/i.test(label)) || labels.some((label) => /^(?:actions\/deploy-pages|cloudflare\/wrangler-action|peaceiris\/actions-gh-pages)@/.test(label));
-      const isTestGate = [...runScripts].some((script) => script === "test" || script.startsWith("test:"));
+      const deploysTarget =
+        hasEnvironment ||
+        labels.some((label) => /\bdeploy(?:ment)?\b/i.test(label)) ||
+        labels.some((label) =>
+          /^(?:actions\/deploy-pages|cloudflare\/wrangler-action|peaceiris\/actions-gh-pages)@/.test(
+            label,
+          ),
+        );
+      const isTestGate = [...runScripts].some(
+        (script) => script === "test" || script.startsWith("test:"),
+      );
       const jobComponentId = stableId("component", sink.projectId, "pipeline-job", path, id);
-      addComponent(sink, {
-        id: jobComponentId,
-        kind: "pipeline",
-        layer: "delivery",
+      addComponent(
+        sink,
+        {
+          id: jobComponentId,
+          kind: "pipeline",
+          layer: "delivery",
+          name: typeof job.name === "string" ? job.name.slice(0, 200) : id,
+          locator: `${path}#jobs/${id}`,
+          environmentIds: [],
+          versions: [],
+          observations: [
+            {
+              dimension: "configuration",
+              state: "configured",
+              environmentId: null,
+              observedAt: sink.capturedAt,
+              confidence: "high",
+              evidenceIds: [evidenceId],
+            },
+          ],
+          evidenceIds: [evidenceId],
+        },
+        collector,
+      );
+      jobs.push({
+        componentId: jobComponentId,
+        id,
         name: typeof job.name === "string" ? job.name.slice(0, 200) : id,
-        locator: `${path}#jobs/${id}`,
-        environmentIds: [],
-        versions: [],
-        observations: [{ dimension: "configuration", state: "configured", environmentId: null, observedAt: sink.capturedAt, confidence: "high", evidenceIds: [evidenceId] }],
-        evidenceIds: [evidenceId],
-      }, collector);
-      jobs.push({ componentId: jobComponentId, id, name: typeof job.name === "string" ? job.name.slice(0, 200) : id, needs, missingNeeds, sourceEvidenceId: evidenceId, runScripts: [...runScripts].sort(), deploysTarget, isTestGate });
+        needs,
+        missingNeeds,
+        sourceEvidenceId: evidenceId,
+        runScripts: [...runScripts].sort(),
+        deploysTarget,
+        isTestGate,
+      });
     }
 
     const jobComponentByKey = new Map(jobs.map((job) => [job.id, job.componentId]));
@@ -750,26 +1374,54 @@ export async function collectGitHubActions(
       for (const prerequisiteId of job.needs) {
         const prerequisiteComponentId = jobComponentByKey.get(prerequisiteId);
         if (!prerequisiteComponentId) continue;
-        addRelationship(sink, {
-          id: stableId("relationship", sink.projectId, job.componentId, prerequisiteComponentId, "depends_on"),
-          fromId: job.componentId,
-          toId: prerequisiteComponentId,
-          type: "depends_on",
-          environmentIds: [],
-          confidence: "high",
-          evidenceIds: [evidenceId],
-        }, collector);
+        addRelationship(
+          sink,
+          {
+            id: stableId(
+              "relationship",
+              sink.projectId,
+              job.componentId,
+              prerequisiteComponentId,
+              "depends_on",
+            ),
+            fromId: job.componentId,
+            toId: prerequisiteComponentId,
+            type: "depends_on",
+            environmentIds: [],
+            confidence: "high",
+            evidenceIds: [evidenceId],
+          },
+          collector,
+        );
       }
     }
-    facts.workflows.push({ path, pipelineComponentId: pipelineId, workflowEvidenceId: evidenceId, parseStatus, hasDynamicNeeds, jobs, hasLiteralTestGate: jobs.some((job) => job.isTestGate), ambiguityReasons: [...new Set(ambiguityReasons)] });
+    facts.workflows.push({
+      path,
+      pipelineComponentId: pipelineId,
+      workflowEvidenceId: evidenceId,
+      parseStatus,
+      hasDynamicNeeds,
+      jobs,
+      hasLiteralTestGate: jobs.some((job) => job.isTestGate),
+      ambiguityReasons: [...new Set(ambiguityReasons)],
+    });
   }
-  addCoverage(sink, collector, anyFailed ? "failed" : "supported", ".github/workflows", anyFailed ? "One or more workflows had malformed or unresolved declarations; rule consumers must honor per-workflow parse status." : "Parsed workflow names, literal job prerequisites, and allowlisted test/deploy signals only.");
+  addCoverage(
+    sink,
+    collector,
+    anyFailed ? "failed" : "supported",
+    ".github/workflows",
+    anyFailed
+      ? "One or more workflows had malformed or unresolved declarations; rule consumers must honor per-workflow parse status."
+      : "Parsed workflow names, literal job prerequisites, and allowlisted test/deploy signals only.",
+  );
 }
 
 function isBoundedWorkflow(value: unknown, depth: number, counter: { count: number }): boolean {
   if (depth > 64 || counter.count > 20_000) return false;
   counter.count += 1;
-  if (Array.isArray(value)) return value.every((item) => isBoundedWorkflow(item, depth + 1, counter));
+  if (Array.isArray(value))
+    return value.every((item) => isBoundedWorkflow(item, depth + 1, counter));
   const object = record(value);
   if (!object) return true;
   return Object.values(object).every((item) => isBoundedWorkflow(item, depth + 1, counter));
@@ -778,5 +1430,7 @@ function isBoundedWorkflow(value: unknown, depth: number, counter: { count: numb
 function extractScriptNames(run: string, knownScripts: ReadonlySet<string>): string[] {
   // Inspect the literal command only for recognized package-manager script invocations; never execute or store it.
   const matches = run.matchAll(/\b(?:npm|pnpm|yarn)\s+(?:run\s+)?([A-Za-z0-9:_-]{1,100})\b/g);
-  return [...new Set([...matches].map((match) => match[1]!).filter((name) => knownScripts.has(name)))];
+  return [
+    ...new Set([...matches].map((match) => match[1]!).filter((name) => knownScripts.has(name))),
+  ];
 }

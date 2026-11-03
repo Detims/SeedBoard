@@ -2,7 +2,6 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import type { FormatsPlugin } from "ajv-formats";
 import * as formatsModule from "ajv-formats";
 import configSchema from "./project-config.schema.json" with { type: "json" };
-import type { DiscoveryEvidence } from "./types.js";
 import { isSafeRelativePath } from "./safe-source.js";
 
 export type DeclaredComponent = {
@@ -49,8 +48,7 @@ addFormats(ajv);
 const validateConfigSchema = ajv.compile<ProjectConfig>(configSchema);
 
 export type ConfigParseResult =
-  | { ok: true; value: ProjectConfig }
-  | { ok: false; reason: "syntax" | "schema" | "unsafe_value" };
+  { ok: true; value: ProjectConfig } | { ok: false; reason: "syntax" | "schema" | "unsafe_value" };
 
 export function parseProjectConfig(source: Uint8Array): ConfigParseResult {
   let input: unknown;
@@ -82,9 +80,7 @@ export function parseProjectConfig(source: Uint8Array): ConfigParseResult {
       !isSafeRelativePath(component.locator) ||
       containsControlCharacter(component.key) ||
       containsControlCharacter(component.name) ||
-      component.environmentIds.some(
-        (environmentId) => !environmentIds.has(environmentId),
-      )
+      component.environmentIds.some((environmentId) => !environmentIds.has(environmentId))
     ) {
       return { ok: false, reason: "unsafe_value" };
     }
@@ -113,9 +109,7 @@ export function parseProjectConfig(source: Uint8Array): ConfigParseResult {
     if (
       !keys.has(relationship.from) ||
       !keys.has(relationship.to) ||
-      relationship.environmentIds.some(
-        (environmentId) => !environmentIds.has(environmentId),
-      )
+      relationship.environmentIds.some((environmentId) => !environmentIds.has(environmentId))
     ) {
       return { ok: false, reason: "unsafe_value" };
     }
@@ -136,16 +130,4 @@ export function parseProjectConfig(source: Uint8Array): ConfigParseResult {
 
 function containsControlCharacter(value: string): boolean {
   return /[\u0000-\u001f\u007f]/.test(value);
-}
-
-export function configEvidence(path: string, observedAt: string): DiscoveryEvidence {
-  return {
-    id: "",
-    sourceType: "declaration",
-    path,
-    url: null,
-    line: null,
-    observedAt,
-    description: "User-authored project declaration; not runtime verification.",
-  };
 }

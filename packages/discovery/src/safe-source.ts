@@ -59,7 +59,13 @@ export function isExcludedPath(relativePath: string): boolean {
   return segments.some((segment, index) => {
     const lower = segment.toLowerCase();
     const basename = index === segments.length - 1;
-    if (!basename && ignoredDirectories.has(lower)) return true;
+    if (!basename && ignoredDirectories.has(lower)) {
+      // Permit only the user's explicit declaration inside Modernizer's local state directory.
+      return !(
+        lower === ".modernizer" && relativePath.replaceAll("\\", "/") === ".modernizer/project.json"
+      );
+    }
+    if (basename && ignoredDirectories.has(lower)) return true;
     if (!basename) return false;
     return (
       lower === ".env" ||
@@ -87,7 +93,7 @@ export class SafeSource {
   readonly rootPath: string;
   readonly budgets: ScanBudgets;
   private readonly fileSystem: DiscoveryFileSystem;
-  private readonly signal?: AbortSignal;
+  private readonly signal: AbortSignal | undefined;
   private fileCount = 0;
   private totalBytes = 0;
   private readonly files = new Map<string, { absolutePath: string; size: number }>();
@@ -119,13 +125,14 @@ export class SafeSource {
     const requested = resolve(options.rootPath);
     const rootPath = await fileSystem.realpath(requested);
     const rootStat = await fileSystem.stat(rootPath);
-    if (!rootStat.isDirectory()) throw new TypeError("Selected repository root is not a directory.");
+    if (!rootStat.isDirectory())
+      throw new TypeError("Selected repository root is not a directory.");
     return new SafeSource(rootPath, fileSystem, budgets, options.signal);
   }
 
   async walk(): Promise<{
     files: ReadonlyMap<string, { absolutePath: string; size: number }>;
-    issue: { code: "limit_files" | "limit_depth"; path: string } | null;
+    issue: { code: "limit_files" | "limit_depth" | "read_failed"; path: string } | null;
   }> {
     await this.visit(this.rootPath, "", 0);
     return { files: this.files, issue: this.limitIssue };
@@ -175,20 +182,24 @@ export class SafeSource {
     if (this.signal?.aborted) throw new DOMException("Scan cancelled.", "AbortError");
   }
 
-  private async visit(directoryPath: string, relativeDirectory: string, depth: number): Promise<void> {
+  private async visit(
+    directoryPath: string,
+    relativeDirectory: string,
+    depth: number,
+  ): Promise<void> {
     this.throwIfAborted();
     if (this.limitIssue) return;
     if (depth > this.budgets.maxDepth) {
-      this.limitIssue = { code: "read_failed", path: relativeDirectory };
+      this.limitIssue = { code: "limit_depth", path: relativeDirectory };
       return;
     }
 
     let entries: DirEntryLike[];
     try {
-      entries = await this.fileSystem.readdir(directoryPath);
+      entries = await this.fileSystem.readdir(directoryPath, { withFileTypes: true });
     } catch {
       // An unreadable subtree is surfaced by the caller as a bounded traversal issue.
-      this.limitIssue = { code: "limit_depth", path: relativeDirectory };
+      this.limitIssue = { code: "read_failed", path: relativeDirectory };
       return;
     }
     entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
@@ -218,7 +229,7 @@ export class SafeSource {
 
       if (stat.isDirectory() && entry.isDirectory()) {
         if (depth + 1 > this.budgets.maxDepth) {
-        this.limitIssue = { code: "limit_depth", path: childRelative };
+          this.limitIssue = { code: "limit_depth", path: childRelative };
           return;
         }
         await this.visit(realPath, childRelative, depth + 1);
