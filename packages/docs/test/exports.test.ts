@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../../../fixtures/demo.snapshot.json";
 import { assertSnapshot, type Snapshot } from "@modernizer/contracts";
-import { createGuideStub, exportBacklogMarkdown, exportDocumentationAppendix, exportSnapshotJson, resolveDocumentation } from "../src/index.js";
+import {
+  createGuideStub,
+  exportBacklogMarkdown,
+  exportDocumentationAppendix,
+  exportSnapshotJson,
+  resolveDocumentation,
+} from "../src/index.js";
 
 assertSnapshot(fixture);
 const snapshot = fixture as Snapshot;
@@ -9,7 +15,25 @@ const snapshot = fixture as Snapshot;
 describe("documentation and sanitized exports", () => {
   it("resolves one documentation record for every component", () => {
     expect(resolveDocumentation(snapshot)).toHaveLength(snapshot.components.length);
-    expect(new Set(resolveDocumentation(snapshot).map((item) => item.componentId)).size).toBe(snapshot.components.length);
+    expect(new Set(resolveDocumentation(snapshot).map((item) => item.componentId)).size).toBe(
+      snapshot.components.length,
+    );
+  });
+  it("adds curated official links for recognized packages without claiming verification", () => {
+    const withPackage = structuredClone(snapshot) as Snapshot;
+    withPackage.components.push({
+      ...withPackage.components[0]!,
+      id: "cmp-react-test",
+      kind: "package",
+      name: "react",
+      locator: "apps/web/node_modules/react",
+    });
+    const found = resolveDocumentation(withPackage).find(
+      (item) => item.componentId === "cmp-react-test",
+    );
+    expect(found?.status).toBe("partial");
+    expect(found?.officialReferences[0]?.verifiedAt).toBeNull();
+    expect(found?.gap).toContain("version match");
   });
   it("creates an explicit internal guide stub for undocumented components", () => {
     const item = snapshot.components[0]!;
@@ -19,7 +43,13 @@ describe("documentation and sanitized exports", () => {
   it("escapes malicious labels and removes URL credentials, queries, and unsafe paths", () => {
     const hostile = structuredClone(snapshot) as Snapshot;
     hostile.components[0]!.name = "[x](javascript:alert(1))";
-    hostile.documentation[0]!.officialReferences = [{ title: "bad ](url)", url: "https://user:secret@example.test/doc?token=secret", verifiedAt: null }];
+    hostile.documentation[0]!.officialReferences = [
+      {
+        title: "bad ](url)",
+        url: "https://user:secret@example.test/doc?token=secret",
+        verifiedAt: null,
+      },
+    ];
     hostile.documentation[0]!.internalPaths = ["../escape", "guide.md"];
     const json = exportSnapshotJson(hostile);
     expect(json).not.toContain("secret");
