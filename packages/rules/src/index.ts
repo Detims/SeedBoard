@@ -166,15 +166,18 @@ function makeSuggestion(
     ruleId: rule.id,
     ruleVersion: rule.version,
     category: rule.category,
-    targetIds: targets,
+    targetIds: [targets[0]!, ...targets.slice(1)],
     priority: rule.priority,
     effort: rule.effort,
     confidence: rule.confidence,
-    evidenceIds: evidence,
+    evidenceIds: [evidence[0]!, ...evidence.slice(1)],
     title: safeText(title, 240),
     rationale: safeText(rationale, 3000),
     action: safeText(action, 1800),
-    verification: verification.map((step) => safeText(step, 800)).slice(0, 12),
+    verification: [
+      safeText(verification[0] ?? "Review the cited evidence.", 800),
+      ...verification.slice(1, 12).map((step) => safeText(step, 800)),
+    ],
   };
 }
 
@@ -340,7 +343,11 @@ function evaluateChoreRule(snapshot: Snapshot, packageFacts: readonly Dependency
     const targetIds = uniqueSorted(occurrences.map((occurrence) => occurrence.componentId));
     if (versions.length < 2 || targetIds.length < 2) continue;
     const evidence = uniqueSorted(
-      occurrences.flatMap((occurrence) => [occurrence.manifestEvidenceId, occurrence.lockEvidenceId]),
+      occurrences.flatMap((occurrence) =>
+        occurrence.lockEvidenceId
+          ? [occurrence.manifestEvidenceId, occurrence.lockEvidenceId]
+          : [occurrence.manifestEvidenceId],
+      ),
     );
     if (!hasEvidence(snapshot, ...evidence)) continue;
 
