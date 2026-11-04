@@ -32,6 +32,7 @@ import {
   browserLayoutStore,
   deterministicLayout,
   filterComponents,
+  filterOverviewArchitectureComponents,
   getInventoryCounts,
   type LayerFilter,
   type PositionMap,
@@ -175,6 +176,10 @@ function LoadedDashboard({
   const filtered = useMemo(
     () => filterComponents(snapshot.components, query, layer),
     [snapshot.components, query, layer],
+  );
+  const overviewArchitecture = useMemo(
+    () => filterOverviewArchitectureComponents(filterComponents(snapshot.components, query, "all")),
+    [snapshot.components, query],
   );
   const selected = snapshot.components.find((component) => component.id === selectedId) ?? null;
   const counts = getInventoryCounts(snapshot, filtered.length);
@@ -388,40 +393,42 @@ function LoadedDashboard({
             </div>
           )}
 
-          <section className="metrics-grid" aria-label="Assessment summary">
-            <MetricCard
-              label="Architecture objects"
-              value={counts.total}
-              helper="Distinct components"
-              icon={Boxes}
-              tone="blue"
-              trend="Snapshot count"
-            />
-            <MetricCard
-              label="Connections"
-              value={counts.relationships}
-              helper="Evidence-backed links"
-              icon={Cable}
-              tone="violet"
-              trend="Across the stack"
-            />
-            <MetricCard
-              label="Unknown observations"
-              value={counts.unknownObservations}
-              helper="Health, CI or migrations"
-              icon={CircleHelp}
-              tone="amber"
-              trend="Worth verifying"
-            />
-            <MetricCard
-              label="Docs need review"
-              value={counts.undocumented + counts.partialDocumentation}
-              helper={`${counts.undocumented} undocumented · ${counts.partialDocumentation} partial`}
-              icon={BookOpen}
-              tone="rose"
-              trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`}
-            />
-          </section>
+          {page !== "architecture" && (
+            <section className="metrics-grid" aria-label="Assessment summary">
+              <MetricCard
+                label="Architecture objects"
+                value={counts.total}
+                helper="Distinct components"
+                icon={Boxes}
+                tone="blue"
+                trend="Snapshot count"
+              />
+              <MetricCard
+                label="Connections"
+                value={counts.relationships}
+                helper="Evidence-backed links"
+                icon={Cable}
+                tone="violet"
+                trend="Across the stack"
+              />
+              <MetricCard
+                label="Unknown observations"
+                value={counts.unknownObservations}
+                helper="Health, CI or migrations"
+                icon={CircleHelp}
+                tone="amber"
+                trend="Worth verifying"
+              />
+              <MetricCard
+                label="Docs need review"
+                value={counts.undocumented + counts.partialDocumentation}
+                helper={`${counts.undocumented} undocumented · ${counts.partialDocumentation} partial`}
+                icon={BookOpen}
+                tone="rose"
+                trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`}
+              />
+            </section>
+          )}
 
           {page === "inventory" ? (
             <InventoryView
@@ -435,35 +442,39 @@ function LoadedDashboard({
             />
           ) : page === "overview" || page === "architecture" ? (
             <section
-              className={`architecture-section ${page === "architecture" ? "expanded" : ""}`}
+              className={`architecture-section ${page === "overview" ? "preview" : "expanded"}`}
             >
               <div className="section-header">
                 <div>
                   <div className="section-title-row">
-                    <h2>{page === "overview" ? "System architecture" : "Explore the map"}</h2>
+                    <h2>{page === "overview" ? "Core architecture" : "Explore the map"}</h2>
                     <span className="section-count">{counts.total} objects</span>
                   </div>
                   <p>
                     {page === "overview"
-                      ? "Select any node to see its versions, signals, and evidence."
+                      ? "A focused view of the frontend, backend, data, and delivery layers."
                       : "Drag to rearrange. Pan or zoom to follow connections."}
                   </p>
                 </div>
                 <div className="section-actions">
-                  <button
-                    className={`soft-button ${focusNeighbors ? "selected" : ""}`}
-                    onClick={() => setFocusNeighbors((current) => !current)}
-                  >
-                    <Filter size={14} aria-hidden="true" />
-                    {focusNeighbors ? "Showing neighbors" : "Focus neighbors"}
-                  </button>
-                  <button
-                    className="soft-button"
-                    onClick={resetLayout}
-                    title="Restore the suggested map layout"
-                  >
-                    <ArrowDownRight size={15} aria-hidden="true" /> Reset layout
-                  </button>
+                  {page === "architecture" && (
+                    <>
+                      <button
+                        className={`soft-button ${focusNeighbors ? "selected" : ""}`}
+                        onClick={() => setFocusNeighbors((current) => !current)}
+                      >
+                        <Filter size={14} aria-hidden="true" />
+                        {focusNeighbors ? "Showing neighbors" : "Focus neighbors"}
+                      </button>
+                      <button
+                        className="soft-button"
+                        onClick={resetLayout}
+                        title="Restore the suggested map layout"
+                      >
+                        <ArrowDownRight size={15} aria-hidden="true" /> Reset layout
+                      </button>
+                    </>
+                  )}
                   {page === "overview" && (
                     <button className="text-link" onClick={() => setPage("architecture")}>
                       Open full map <ArrowRight size={14} />
@@ -471,38 +482,40 @@ function LoadedDashboard({
                   )}
                 </div>
               </div>
-              <div className="map-filter-row">
-                <div className="layer-filters" aria-label="Filter map by architecture layer">
-                  {(
-                    [
-                      "all",
-                      "frontend",
-                      "backend",
-                      "testing",
-                      "data",
-                      "delivery",
-                      "shared",
-                      "external",
-                    ] as const
-                  ).map((value) => (
-                    <button
-                      key={value}
-                      className={`filter-chip ${layer === value ? "active" : ""}`}
-                      onClick={() => setLayer(value)}
-                    >
-                      {value === "all"
-                        ? "All layers"
-                        : value.charAt(0).toUpperCase() + value.slice(1)}
-                    </button>
-                  ))}
+              {page === "architecture" && (
+                <div className="map-filter-row">
+                  <div className="layer-filters" aria-label="Filter map by architecture layer">
+                    {(
+                      [
+                        "all",
+                        "frontend",
+                        "backend",
+                        "testing",
+                        "data",
+                        "delivery",
+                        "shared",
+                        "external",
+                      ] as const
+                    ).map((value) => (
+                      <button
+                        key={value}
+                        className={`filter-chip ${layer === value ? "active" : ""}`}
+                        onClick={() => setLayer(value)}
+                      >
+                        {value === "all"
+                          ? "All layers"
+                          : value.charAt(0).toUpperCase() + value.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="object-count">
+                    Showing <strong>{filtered.length}</strong> of {counts.total} objects
+                  </span>
                 </div>
-                <span className="object-count">
-                  Showing <strong>{filtered.length}</strong> of {counts.total} objects
-                </span>
-              </div>
+              )}
               <div className="map-and-details">
                 <div className="map-card">
-                  {filtered.length === 0 ? (
+                  {(page === "overview" ? overviewArchitecture : filtered).length === 0 ? (
                     <div className="empty-state">
                       <Search size={24} />
                       <strong>No components match those filters</strong>
@@ -519,9 +532,9 @@ function LoadedDashboard({
                     </div>
                   ) : (
                     <ArchitectureGraph
-                      components={snapshot.components}
+                      components={page === "overview" ? overviewArchitecture : snapshot.components}
                       relationships={snapshot.relationships}
-                      matchingComponents={filtered}
+                      matchingComponents={page === "overview" ? overviewArchitecture : filtered}
                       selectedId={selectedId}
                       onSelect={setSelectedId}
                       positions={positions}
@@ -544,11 +557,13 @@ function LoadedDashboard({
                     </span>
                   </div>
                 </div>
-                <ComponentDetails
-                  component={selected}
-                  snapshot={snapshot}
-                  onSelect={setSelectedId}
-                />
+                {page === "architecture" && (
+                  <ComponentDetails
+                    component={selected}
+                    snapshot={snapshot}
+                    onSelect={setSelectedId}
+                  />
+                )}
               </div>
             </section>
           ) : (
