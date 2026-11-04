@@ -1,6 +1,6 @@
 # Local setup and first scan
 
-Modernizer runs locally and binds its API and dashboard to loopback. Default scans parse bounded files as data; they do not run the target's scripts, import its modules, call its APIs, or open its database.
+SeedBoard runs locally and binds its API and dashboard to loopback. Default scans parse bounded files as data; they do not run the target's scripts, import its modules, call its APIs, or open its database.
 
 ## Requirements
 
@@ -45,7 +45,7 @@ The browser cannot choose or submit a filesystem root. The first version collect
 
 ## Local data and backup
 
-By default the SQLite database is stored in `%LOCALAPPDATA%\Modernizer\modernizer.sqlite` on Windows, `~/Library/Application Support/Modernizer/modernizer.sqlite` on macOS, or `$XDG_DATA_HOME/modernizer/modernizer.sqlite` (otherwise `~/.local/share/modernizer/modernizer.sqlite`) on Linux. Set `MODERNIZER_DATA_DIR` before starting the API and CLI to choose another data directory. Read [backup and restore](backup-restore.md) before moving or replacing the database.
+To preserve existing installations, SeedBoard continues to use its original local data location: `%LOCALAPPDATA%\Modernizer\modernizer.sqlite` on Windows, `~/Library/Application Support/Modernizer/modernizer.sqlite` on macOS, or `$XDG_DATA_HOME/modernizer/modernizer.sqlite` (otherwise `~/.local/share/modernizer/modernizer.sqlite`) on Linux. The `MODERNIZER_DATA_DIR` setting remains the override name for compatibility. Read [backup and restore](backup-restore.md) before moving or replacing the database.
 
 ## Troubleshooting
 

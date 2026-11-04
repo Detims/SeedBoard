@@ -21,10 +21,10 @@
 ## Documentation is missing
 
 - The appendix keeps one row per component and names unresolved references or review gaps.
-- Registry links in Modernizer's own machine-readable lockfile inventory are package lookup pages, not individually reviewed vendor guides.
+- Registry links in SeedBoard's own machine-readable lockfile inventory are package lookup pages, not individually reviewed vendor guides.
 - Add and review an internal guide for the component; keep unknown operations and credentials explicitly undocumented.
 
 ## Export or restore problems
 
 - Exports strip URL credentials, queries, and fragments; review the resulting Markdown before sharing it.
-- For database lock, backup, or restore issues, stop Modernizer and follow [backup and restore](backup-restore.md). Preserve the original directory during recovery.
+- For database lock, backup, or restore issues, stop SeedBoard and follow [backup and restore](backup-restore.md). Preserve the original directory during recovery.

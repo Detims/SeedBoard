@@ -216,13 +216,13 @@ function LoadedDashboard({
             <span />
             <span />
           </span>
-          <span className="brand-word">modernizer</span>
+          <span className="brand-word">SeedBoard</span>
           <span className="brand-build">v0.1</span>
         </a>
 
         <div className="workspace-switcher">
           <div className="workspace-avatar" aria-hidden="true">
-            M
+            S
           </div>
           <div className="workspace-meta">
             <span className="workspace-name">{snapshot.projectId}</span>
@@ -637,7 +637,7 @@ function LoadedDashboard({
 
           <footer className="page-footer">
             <span>
-              MODERNIZER <span className="footer-separator">/</span> LOCAL ASSESSMENT
+              SEEDBOARD <span className="footer-separator">/</span> LOCAL ASSESSMENT
             </span>
             <span>
               <ShieldCheck size={12} />{" "}
@@ -701,7 +701,7 @@ function SnapshotError({
           <ArrowUpRight size={14} /> Retry snapshot
         </button>
         {code === "PROJECTS_EMPTY" && (
-          <span className="error-command">modernizer project register &lt;folder&gt;</span>
+          <span className="error-command">seedboard project register &lt;folder&gt;</span>
         )}
       </div>
     </main>
@@ -741,7 +741,7 @@ function AssessmentView({
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = url;
-      anchor.download = `modernizer-${format}.${format === "json" ? "json" : "md"}`;
+      anchor.download = `seedboard-${format}.${format === "json" ? "json" : "md"}`;
       anchor.click();
       URL.revokeObjectURL(url);
       setNotice(`${format} export downloaded.`);

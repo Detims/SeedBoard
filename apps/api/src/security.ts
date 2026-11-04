@@ -75,7 +75,7 @@ export class LocalRequestSecurity {
       return denied(
         403,
         "SESSION_REQUIRED",
-        "Open the local Modernizer app before making requests.",
+        "Open the local SeedBoard app before making requests.",
       );
     }
     if (input.csrfHeader !== csrfHeaderValue) {

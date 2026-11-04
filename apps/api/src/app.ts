@@ -277,11 +277,11 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
       if (!result) throw new ResourceNotFoundError("Snapshot not found.");
       if (format === "json") {
         reply.type("application/json; charset=utf-8");
-        reply.header("Content-Disposition", 'attachment; filename="modernizer-snapshot.json"');
+        reply.header("Content-Disposition", 'attachment; filename="seedboard-snapshot.json"');
         return exportSnapshotJson(result.snapshot);
       }
       reply.type("text/markdown; charset=utf-8");
-      reply.header("Content-Disposition", `attachment; filename="modernizer-${format}.md"`);
+      reply.header("Content-Disposition", `attachment; filename="seedboard-${format}.md"`);
       const content =
         format === "appendix"
           ? exportDocumentationAppendix(result.snapshot)

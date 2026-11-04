@@ -1,6 +1,6 @@
-# Modernizer
+# SeedBoard
 
-Modernizer is a local-first tool for reviewing application architecture, dependencies, environments, databases, migrations, and delivery pipelines before modernization work.
+SeedBoard is a local-first dashboard for reviewing application architecture, dependencies, environments, databases, migrations, and delivery pipelines before modernization work.
 
 ## Capabilities
 

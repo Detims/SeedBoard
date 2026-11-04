@@ -58,7 +58,7 @@ function parseCommand(args: string[]): Command {
         name = args[index + 1];
         index += 1;
       } else {
-        throw new TypeError("Usage: modernizer project register <folder> [--name <label>]");
+        throw new TypeError("Usage: seedboard project register <folder> [--name <label>]");
       }
     }
     return { action: "register", path: args[2], ...(name === undefined ? {} : { name }) };
@@ -66,18 +66,18 @@ function parseCommand(args: string[]): Command {
   if (args[0] === "snapshot" && args[1] === "validate" && args[2] && args.length === 3) {
     return { action: "validate", file: args[2] };
   }
-  throw new TypeError("Unknown command. Run modernizer --help.");
+  throw new TypeError("Unknown command. Run seedboard --help.");
 }
 
 function printHelp(): void {
   console.log(
     [
-      "Modernizer local CLI",
+      "SeedBoard local CLI",
       "",
-      "  modernizer project register <folder> [--name <label>]",
-      "  modernizer project list",
-      "  modernizer snapshot validate <json-file>",
-      "  modernizer --help",
+      "  seedboard project register <folder> [--name <label>]",
+      "  seedboard project list",
+      "  seedboard snapshot validate <json-file>",
+      "  seedboard --help",
       "",
       "Registration stores the selected local folder; it does not read its files.",
     ].join("\n"),

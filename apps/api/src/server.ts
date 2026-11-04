@@ -10,7 +10,7 @@ if (!Number.isInteger(port) || port < 1 || port > 65_535) {
 
 try {
   await app.listen({ host: "127.0.0.1", port });
-  console.log(`Modernizer API listening on http://127.0.0.1:${port}`);
+  console.log(`SeedBoard API listening on http://127.0.0.1:${port}`);
 } catch (error) {
   app.log.error(error);
   process.exitCode = 1;
