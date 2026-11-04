@@ -31,6 +31,11 @@ import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
 import { demoSnapshotSource, type SnapshotSource } from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
 import {
+  filterDocumentationComponents,
+  filterSuggestionsByCategory,
+  type SuggestionCategoryFilter,
+} from "./viewFilters.js";
+import {
   browserLayoutStore,
   deterministicLayout,
   filterComponents,
@@ -904,10 +909,14 @@ function AssessmentView({
   snapshot: Snapshot;
   source: SnapshotSource;
 }) {
+  const [suggestionCategory, setSuggestionCategory] = useState<SuggestionCategoryFilter>("all");
+  const [documentationQuery, setDocumentationQuery] = useState("");
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState("");
   const evidence = new Map(snapshot.evidence.map((item) => [item.id, item]));
+  const categories = ["feat", "chore", "refactor", "style", "fix", "docs"] as const;
+  const suggestions = filterSuggestionsByCategory(snapshot.suggestions, suggestionCategory);
   const download = async (format: "json" | "backlog" | "appendix") => {
     try {
       if (!source.exportSnapshot) throw new Error("Exports are available for local API snapshots.");
@@ -980,8 +989,34 @@ function AssessmentView({
             {notice}
           </p>
         )}
-        {snapshot.suggestions.length ? (
-          snapshot.suggestions.map((item) => (
+        <div className="suggestion-filter-toolbar">
+          <div className="suggestion-filters" role="group" aria-label="Filter suggestions by type">
+            <button
+              type="button"
+              className={`suggestion-filter ${suggestionCategory === "all" ? "active" : ""}`}
+              aria-pressed={suggestionCategory === "all"}
+              onClick={() => setSuggestionCategory("all")}
+            >
+              All types
+            </button>
+            {categories.map((category) => (
+              <button
+                type="button"
+                className={`suggestion-filter ${suggestionCategory === category ? "active" : ""}`}
+                aria-pressed={suggestionCategory === category}
+                key={category}
+                onClick={() => setSuggestionCategory(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          <span className="filter-result-count" role="status" aria-live="polite">
+            Showing {suggestions.length} of {snapshot.suggestions.length} suggestions
+          </span>
+        </div>
+        {suggestions.length ? (
+          suggestions.map((item) => (
             <article className="panel-card assessment-card" key={item.id}>
               <div className="assessment-card-head">
                 <span className="category-mark blue">{item.category}</span>
@@ -1033,11 +1068,20 @@ function AssessmentView({
               </div>
             </article>
           ))
-        ) : (
+        ) : snapshot.suggestions.length === 0 ? (
           <div className="empty-state compact-empty">
             <Sparkles size={22} />
             <strong>No evidence-backed suggestions</strong>
             <span>Unknown or unsupported inputs do not become asserted defects.</span>
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">
+            <Sparkles size={22} />
+            <strong>No suggestions match this type</strong>
+            <span>Choose another category or show all suggestion types.</span>
+            <button className="soft-button" onClick={() => setSuggestionCategory("all")}>
+              Show all types
+            </button>
           </div>
         )}
       </section>
@@ -1130,6 +1174,11 @@ function AssessmentView({
   }
 
   const documentation = new Map(snapshot.documentation.map((item) => [item.componentId, item]));
+  const documentationComponents = filterDocumentationComponents(
+    snapshot.components,
+    snapshot.documentation,
+    documentationQuery,
+  );
   return (
     <section className="assessment-view">
       <div className="view-toolbar">
@@ -1138,6 +1187,31 @@ function AssessmentView({
           <p>{snapshot.components.length} components · gaps remain visible until reviewed.</p>
         </div>
         {downloads}
+      </div>
+      <div className="documentation-controls">
+        <label className="documentation-search">
+          <Search size={17} aria-hidden="true" />
+          <span className="sr-only">Search documentation</span>
+          <input
+            type="search"
+            value={documentationQuery}
+            onChange={(event) => setDocumentationQuery(event.target.value)}
+            placeholder="Search services, versions, status, links…"
+          />
+          {documentationQuery && (
+            <button
+              type="button"
+              className="clear-documentation-search"
+              onClick={() => setDocumentationQuery("")}
+              aria-label="Clear documentation search"
+            >
+              Clear
+            </button>
+          )}
+        </label>
+        <span className="filter-result-count" role="status" aria-live="polite">
+          Showing {documentationComponents.length} of {snapshot.components.length} documents
+        </span>
       </div>
       <div className="table-wrap">
         <table className="inventory-table">
@@ -1151,7 +1225,7 @@ function AssessmentView({
             </tr>
           </thead>
           <tbody>
-            {snapshot.components.map((component) => {
+            {documentationComponents.map((component) => {
               const doc = documentation.get(component.id);
               return (
                 <tr key={component.id}>
@@ -1194,6 +1268,16 @@ function AssessmentView({
                 </tr>
               );
             })}
+            {documentationComponents.length === 0 && (
+              <tr>
+                <td className="documentation-empty-row" colSpan={5}>
+                  <strong>No documentation matches your search.</strong>
+                  <button className="soft-button" onClick={() => setDocumentationQuery("")}>
+                    Clear search
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
