@@ -3,6 +3,11 @@ import demoSnapshot from "../../../fixtures/demo.snapshot.json";
 
 export interface SnapshotSource {
   loadSnapshot(): Promise<Snapshot>;
+  registerProject?(input: { rootPath: string; name?: string }): Promise<{
+    id: string;
+    name: string;
+    createdAt: string;
+  }>;
   scanLatest?(): Promise<Snapshot>;
   saveDecision?(
     projectId: string,

@@ -3,8 +3,7 @@ info:
   title: Modernizer Local API
   version: 1.0.0
   description: >-
-    Loopback-only API for snapshots and local scan orchestration. Repository-root
-    registration is performed by the local CLI, not by browser requests.
+    Loopback-only API for local project registration, snapshots, and scan orchestration.
 servers:
   - url: http://127.0.0.1:4317/api/v1
     description: Local development default; production port may be configured.
@@ -29,6 +28,33 @@ paths:
                 $ref: "#/components/schemas/ProjectListResponse"
         "503":
           $ref: "#/components/responses/ServiceUnavailable"
+    post:
+      tags: [projects]
+      operationId: registerProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [rootPath]
+              properties:
+                rootPath: { type: string, minLength: 1, maxLength: 4096 }
+                name: { type: string, minLength: 1, maxLength: 200 }
+      responses:
+        "201":
+          description: Project registered. Filesystem roots are never returned.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectRegistrationResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/RateLimited"
   /projects/{projectId}/scans:
     parameters:
       - $ref: "#/components/parameters/ProjectId"
@@ -402,6 +428,12 @@ components:
       required: [data, meta]
       properties:
         data: { type: array, items: { $ref: "#/components/schemas/ProjectSummary" } }
+        meta: { $ref: "#/components/schemas/Meta" }
+    ProjectRegistrationResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data: { $ref: "#/components/schemas/ProjectSummary" }
         meta: { $ref: "#/components/schemas/Meta" }
     ScanState:
       type: string

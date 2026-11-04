@@ -25,7 +25,7 @@ export class LocalApiSnapshotSource implements SnapshotSource {
     const projects = await this.#request<Project[]>("/projects");
     if (projects.length === 0)
       throw new LocalApiError(
-        "No repository is registered. Use the local CLI to register a folder, then reload this dashboard.",
+        "No project is registered yet. Add a local folder to this dashboard to get started.",
         "PROJECTS_EMPTY",
       );
     const savedId = window.localStorage.getItem("modernizer:last-project");
@@ -37,10 +37,20 @@ export class LocalApiSnapshotSource implements SnapshotSource {
     );
     if (!page.length)
       throw new LocalApiError(
-        `No snapshot exists for ${project.name}. Run the first scan to assess this repository.`,
+        `No snapshot exists for ${project.name}. Run the first scan to assess this project.`,
         "SNAPSHOT_EMPTY",
       );
     return this.#loadSnapshot(page[0]!.id);
+  }
+
+  async registerProject(input: { rootPath: string; name?: string }): Promise<Project> {
+    const project = await this.#request<Project>("/projects", {
+      method: "POST",
+      body: JSON.stringify(input),
+    });
+    this.#projectId = project.id;
+    window.localStorage.setItem("modernizer:last-project", project.id);
+    return project;
   }
 
   async scanLatest(): Promise<Snapshot> {
