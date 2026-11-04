@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "pnpm contracts:generate && pnpm -r --if-present build && node scripts/dev.mjs",
     "dev:api": "pnpm contracts:generate && pnpm -r --if-present build && node apps/api/dist/server.js",
-    "typecheck": "pnpm contracts:generate && pnpm --filter @modernizer/contracts build && pnpm -r --if-present typecheck",
+    "typecheck": "pnpm contracts:generate && pnpm -r --if-present build && pnpm -r --if-present typecheck",
     "test": "pnpm contracts:generate && pnpm --filter @modernizer/contracts build && vitest run",
     "build": "pnpm contracts:generate && pnpm -r --if-present build",
     "test:e2e": "pnpm contracts:generate && pnpm -r --if-present build && node tests/e2e/local-smoke.mjs",

@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+packages/contracts/src/generated.ts text eol=lf
+packages/contracts/src/schema.ts text eol=lf

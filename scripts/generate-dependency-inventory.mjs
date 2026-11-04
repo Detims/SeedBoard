@@ -1,10 +1,12 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parse } from "yaml";
+import { parseAllDocuments } from "yaml";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const lock = parse(await readFile(resolve(root, "pnpm-lock.yaml"), "utf8"));
+const lockDocuments = parseAllDocuments(await readFile(resolve(root, "pnpm-lock.yaml"), "utf8"));
+const lock = lockDocuments.at(-1)?.toJSON();
+if (!lock) throw new Error("pnpm-lock.yaml contains no lockfile document.");
 const direct = new Map();
 for (const [workspace, importer] of Object.entries(lock.importers ?? {})) {
   for (const group of ["dependencies", "devDependencies", "optionalDependencies"]) {

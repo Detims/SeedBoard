@@ -17,8 +17,8 @@ const embeddedSchema = `/* Generated from contracts/snapshot.schema.json; do not
 if (process.argv.includes("--check")) {
   let current, currentSchema;
   try {
-    current = await readFile(outputPath, "utf8");
-    currentSchema = await readFile(schemaOutputPath, "utf8");
+    current = (await readFile(outputPath, "utf8")).replaceAll("\r\n", "\n");
+    currentSchema = (await readFile(schemaOutputPath, "utf8")).replaceAll("\r\n", "\n");
   } catch {
     current = "";
     currentSchema = "";
