@@ -10,7 +10,7 @@ Scans collect bounded file metadata only. They do not execute target code, apply
 
 ## First slice commands
 
-From PowerShell, run `pnpm install --frozen-lockfile`, then `pnpm dev` and open `http://127.0.0.1:5173`. Register a project with the CLI steps in the [local setup guide](docs/runbooks/local-setup.md). Use `?demo=1` for the labeled synthetic example. The API binds to `127.0.0.1:4317`.
+From PowerShell, run `pnpm dlx pnpm@12.16.1 install --frozen-lockfile --ignore-scripts`, then `pnpm dlx pnpm@12.16.1 dev` and open `http://127.0.0.1:5173`. Register a project with the CLI steps in the [local setup guide](docs/runbooks/local-setup.md). Use `?demo=1` for the labeled synthetic example. The API binds to `127.0.0.1:4317`.
 
 ## Project references
 
