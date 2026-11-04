@@ -173,6 +173,27 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
   app.get("/api/v1/projects", async (request) => success(request, store.listProjects()));
 
+  app.post<{ Body: unknown }>("/api/v1/projects", async (request, reply) => {
+    const input = validateProjectRegistration(request.body);
+    let project: { id: string; name: string; createdAt: string };
+    try {
+      const registered = await store.registerProject(input);
+      project = {
+        id: registered.id,
+        name: registered.name,
+        createdAt: registered.createdAt,
+      };
+    } catch (error) {
+      const code = isRecord(error) && typeof error.code === "string" ? error.code : "";
+      if (["ENOENT", "ENOTDIR", "EACCES", "EPERM"].includes(code)) {
+        throw new TypeError("Project rootPath must be an accessible existing folder.");
+      }
+      throw error;
+    }
+    reply.code(201);
+    return success(request, project);
+  });
+
   app.post<{ Params: ProjectIdParams }>(
     "/api/v1/projects/:projectId/scans",
     async (request, reply) => {
@@ -354,6 +375,26 @@ function parseLimit(value: string | string[] | undefined): number {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function validateProjectRegistration(input: unknown): { rootPath: string; name?: string } {
+  if (!isRecord(input)) throw new TypeError("Project registration body is required.");
+  if (Object.keys(input).some((key) => !["rootPath", "name"].includes(key))) {
+    throw new TypeError("Project registration only accepts rootPath and name.");
+  }
+  if (typeof input.rootPath !== "string" || input.rootPath.trim().length === 0) {
+    throw new TypeError("Project rootPath must be a non-empty directory path.");
+  }
+  const rootPath = input.rootPath.trim();
+  if (rootPath.length > 4096) throw new TypeError("Project rootPath is too long.");
+  if (/[\u0000-\u001f\u007f]/.test(rootPath)) {
+    throw new TypeError("Project rootPath cannot contain control characters.");
+  }
+  if (input.name === undefined) return { rootPath };
+  if (typeof input.name !== "string" || input.name.trim().length === 0 || input.name.length > 200) {
+    throw new TypeError("Project name must contain 1 to 200 characters.");
+  }
+  return { rootPath, name: input.name };
 }
 
 function validateLayout(input: unknown): LayoutInput {

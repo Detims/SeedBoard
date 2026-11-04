@@ -104,6 +104,10 @@ export function filterComponents(
   });
 }
 
+export function filterOverviewArchitectureComponents(components: Component[]): Component[] {
+  return components.filter((component) => component.layer !== "shared");
+}
+
 export function deterministicLayout(components: Component[]): PositionMap {
   const columns: Record<Component["layer"], number> = {
     frontend: 0,

@@ -16,22 +16,30 @@ import {
   GitBranch,
   LayoutDashboard,
   ListFilter,
+  Plus,
   Search,
   Settings2,
   ShieldCheck,
   Sparkles,
   Workflow,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
 import { demoSnapshotSource, type SnapshotSource } from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
 import {
+  filterDocumentationComponents,
+  filterSuggestionsByCategory,
+  type SuggestionCategoryFilter,
+} from "./viewFilters.js";
+import {
   browserLayoutStore,
   deterministicLayout,
   filterComponents,
+  filterOverviewArchitectureComponents,
   getInventoryCounts,
   type LayerFilter,
   type PositionMap,
@@ -73,6 +81,17 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
   const [snapshotState, setSnapshotState] = useState<SnapshotState>({ status: "loading" });
   const [retry, setRetry] = useState(0);
   const [scanNotice, setScanNotice] = useState("");
+  const [addProjectOpen, setAddProjectOpen] = useState(false);
+
+  const registerProject = async (input: { rootPath: string; name?: string }) => {
+    if (!snapshotSource.registerProject) {
+      throw new Error("Project registration is available when using the local API.");
+    }
+    await snapshotSource.registerProject(input);
+    setAddProjectOpen(false);
+    setSnapshotState({ status: "loading" });
+    setRetry((value) => value + 1);
+  };
 
   useEffect(() => {
     let active = true;
@@ -99,30 +118,36 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
   if (snapshotState.status === "loading") return <SnapshotLoading />;
   if (snapshotState.status === "error")
     return (
-      <SnapshotError
-        message={snapshotState.message}
-        code={snapshotState.code}
-        onRetry={() => setRetry((value) => value + 1)}
-        onScan={
-          snapshotSource.scanLatest
-            ? async () => {
-                setSnapshotState({ status: "loading" });
-                try {
-                  setSnapshotState({
-                    status: "ready",
-                    snapshot: await snapshotSource.scanLatest!(),
-                  });
-                } catch (error) {
-                  setSnapshotState({
-                    status: "error",
-                    message: error instanceof Error ? error.message : "The scan failed.",
-                    code: error instanceof LocalApiError ? error.code : "SCAN_FAILED",
-                  });
+      <>
+        <SnapshotError
+          message={snapshotState.message}
+          code={snapshotState.code}
+          onRetry={() => setRetry((value) => value + 1)}
+          onAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
+          onScan={
+            snapshotSource.scanLatest
+              ? async () => {
+                  setSnapshotState({ status: "loading" });
+                  try {
+                    setSnapshotState({
+                      status: "ready",
+                      snapshot: await snapshotSource.scanLatest!(),
+                    });
+                  } catch (error) {
+                    setSnapshotState({
+                      status: "error",
+                      message: error instanceof Error ? error.message : "The scan failed.",
+                      code: error instanceof LocalApiError ? error.code : "SCAN_FAILED",
+                    });
+                  }
                 }
-              }
-            : undefined
-        }
-      />
+              : undefined
+          }
+        />
+        {addProjectOpen && (
+          <AddProjectDialog onClose={() => setAddProjectOpen(false)} onRegister={registerProject} />
+        )}
+      </>
     );
   const snapshot = snapshotState.snapshot;
   return (
@@ -130,6 +155,10 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
       snapshot={snapshot}
       snapshotSource={snapshotSource}
       scanNotice={scanNotice}
+      onOpenAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
+      addProjectOpen={addProjectOpen}
+      onCloseAddProject={() => setAddProjectOpen(false)}
+      onRegisterProject={registerProject}
       onScan={async () => {
         if (!snapshotSource.scanLatest) return;
         setScanNotice(
@@ -155,11 +184,19 @@ function LoadedDashboard({
   snapshotSource,
   scanNotice,
   onScan,
+  onOpenAddProject,
+  addProjectOpen,
+  onCloseAddProject,
+  onRegisterProject,
 }: {
   snapshot: Snapshot;
   snapshotSource: SnapshotSource;
   scanNotice: string;
   onScan: () => void;
+  onOpenAddProject?: (() => void) | undefined;
+  addProjectOpen: boolean;
+  onCloseAddProject: () => void;
+  onRegisterProject: (input: { rootPath: string; name?: string }) => Promise<void>;
 }) {
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
@@ -175,6 +212,10 @@ function LoadedDashboard({
   const filtered = useMemo(
     () => filterComponents(snapshot.components, query, layer),
     [snapshot.components, query, layer],
+  );
+  const overviewArchitecture = useMemo(
+    () => filterOverviewArchitectureComponents(filterComponents(snapshot.components, query, "all")),
+    [snapshot.components, query],
   );
   const selected = snapshot.components.find((component) => component.id === selectedId) ?? null;
   const counts = getInventoryCounts(snapshot, filtered.length);
@@ -316,6 +357,11 @@ function LoadedDashboard({
                 <Command size={11} aria-label="Command" /> K
               </kbd>
             </label>
+            {onOpenAddProject && (
+              <button className="soft-button add-project-button" onClick={onOpenAddProject}>
+                <Plus size={15} aria-hidden="true" /> Add project
+              </button>
+            )}
             {snapshot.demo ? (
               <span className="demo-pill">
                 <span className="demo-dot" /> DEMO DATA
@@ -388,40 +434,50 @@ function LoadedDashboard({
             </div>
           )}
 
-          <section className="metrics-grid" aria-label="Assessment summary">
-            <MetricCard
-              label="Architecture objects"
-              value={counts.total}
-              helper="Distinct components"
-              icon={Boxes}
-              tone="blue"
-              trend="Snapshot count"
-            />
-            <MetricCard
-              label="Connections"
-              value={counts.relationships}
-              helper="Evidence-backed links"
-              icon={Cable}
-              tone="violet"
-              trend="Across the stack"
-            />
-            <MetricCard
-              label="Unknown observations"
-              value={counts.unknownObservations}
-              helper="Health, CI or migrations"
-              icon={CircleHelp}
-              tone="amber"
-              trend="Worth verifying"
-            />
-            <MetricCard
-              label="Docs need review"
-              value={counts.undocumented + counts.partialDocumentation}
-              helper={`${counts.undocumented} undocumented · ${counts.partialDocumentation} partial`}
-              icon={BookOpen}
-              tone="rose"
-              trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`}
-            />
-          </section>
+          {page !== "architecture" && (
+            <section className="metrics-grid" aria-label="Assessment summary">
+              <MetricCard
+                label="Architecture objects"
+                value={counts.total}
+                helper="Distinct components"
+                icon={Boxes}
+                tone="blue"
+                trend="Snapshot count"
+                destination="Component inventory"
+                onClick={() => setPage("inventory")}
+              />
+              <MetricCard
+                label="Connections"
+                value={counts.relationships}
+                helper="Evidence-backed links"
+                icon={Cable}
+                tone="violet"
+                trend="Across the stack"
+                destination="Architecture map"
+                onClick={() => setPage("architecture")}
+              />
+              <MetricCard
+                label="Unknown observations"
+                value={counts.unknownObservations}
+                helper="Health, CI or migrations"
+                icon={CircleHelp}
+                tone="amber"
+                trend="Worth verifying"
+                destination="Component inventory"
+                onClick={() => setPage("inventory")}
+              />
+              <MetricCard
+                label="Docs need review"
+                value={counts.undocumented + counts.partialDocumentation}
+                helper={`${counts.undocumented} undocumented · ${counts.partialDocumentation} partial`}
+                icon={BookOpen}
+                tone="rose"
+                trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`}
+                destination="Documentation"
+                onClick={() => setPage("documentation")}
+              />
+            </section>
+          )}
 
           {page === "inventory" ? (
             <InventoryView
@@ -435,35 +491,39 @@ function LoadedDashboard({
             />
           ) : page === "overview" || page === "architecture" ? (
             <section
-              className={`architecture-section ${page === "architecture" ? "expanded" : ""}`}
+              className={`architecture-section ${page === "overview" ? "preview" : "expanded"}`}
             >
               <div className="section-header">
                 <div>
                   <div className="section-title-row">
-                    <h2>{page === "overview" ? "System architecture" : "Explore the map"}</h2>
+                    <h2>{page === "overview" ? "Core architecture" : "Explore the map"}</h2>
                     <span className="section-count">{counts.total} objects</span>
                   </div>
                   <p>
                     {page === "overview"
-                      ? "Select any node to see its versions, signals, and evidence."
+                      ? "A focused view of the frontend, backend, data, and delivery layers."
                       : "Drag to rearrange. Pan or zoom to follow connections."}
                   </p>
                 </div>
                 <div className="section-actions">
-                  <button
-                    className={`soft-button ${focusNeighbors ? "selected" : ""}`}
-                    onClick={() => setFocusNeighbors((current) => !current)}
-                  >
-                    <Filter size={14} aria-hidden="true" />
-                    {focusNeighbors ? "Showing neighbors" : "Focus neighbors"}
-                  </button>
-                  <button
-                    className="soft-button"
-                    onClick={resetLayout}
-                    title="Restore the suggested map layout"
-                  >
-                    <ArrowDownRight size={15} aria-hidden="true" /> Reset layout
-                  </button>
+                  {page === "architecture" && (
+                    <>
+                      <button
+                        className={`soft-button ${focusNeighbors ? "selected" : ""}`}
+                        onClick={() => setFocusNeighbors((current) => !current)}
+                      >
+                        <Filter size={14} aria-hidden="true" />
+                        {focusNeighbors ? "Showing neighbors" : "Focus neighbors"}
+                      </button>
+                      <button
+                        className="soft-button"
+                        onClick={resetLayout}
+                        title="Restore the suggested map layout"
+                      >
+                        <ArrowDownRight size={15} aria-hidden="true" /> Reset layout
+                      </button>
+                    </>
+                  )}
                   {page === "overview" && (
                     <button className="text-link" onClick={() => setPage("architecture")}>
                       Open full map <ArrowRight size={14} />
@@ -471,38 +531,40 @@ function LoadedDashboard({
                   )}
                 </div>
               </div>
-              <div className="map-filter-row">
-                <div className="layer-filters" aria-label="Filter map by architecture layer">
-                  {(
-                    [
-                      "all",
-                      "frontend",
-                      "backend",
-                      "testing",
-                      "data",
-                      "delivery",
-                      "shared",
-                      "external",
-                    ] as const
-                  ).map((value) => (
-                    <button
-                      key={value}
-                      className={`filter-chip ${layer === value ? "active" : ""}`}
-                      onClick={() => setLayer(value)}
-                    >
-                      {value === "all"
-                        ? "All layers"
-                        : value.charAt(0).toUpperCase() + value.slice(1)}
-                    </button>
-                  ))}
+              {page === "architecture" && (
+                <div className="map-filter-row">
+                  <div className="layer-filters" aria-label="Filter map by architecture layer">
+                    {(
+                      [
+                        "all",
+                        "frontend",
+                        "backend",
+                        "testing",
+                        "data",
+                        "delivery",
+                        "shared",
+                        "external",
+                      ] as const
+                    ).map((value) => (
+                      <button
+                        key={value}
+                        className={`filter-chip ${layer === value ? "active" : ""}`}
+                        onClick={() => setLayer(value)}
+                      >
+                        {value === "all"
+                          ? "All layers"
+                          : value.charAt(0).toUpperCase() + value.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="object-count">
+                    Showing <strong>{filtered.length}</strong> of {counts.total} objects
+                  </span>
                 </div>
-                <span className="object-count">
-                  Showing <strong>{filtered.length}</strong> of {counts.total} objects
-                </span>
-              </div>
+              )}
               <div className="map-and-details">
                 <div className="map-card">
-                  {filtered.length === 0 ? (
+                  {(page === "overview" ? overviewArchitecture : filtered).length === 0 ? (
                     <div className="empty-state">
                       <Search size={24} />
                       <strong>No components match those filters</strong>
@@ -519,9 +581,9 @@ function LoadedDashboard({
                     </div>
                   ) : (
                     <ArchitectureGraph
-                      components={snapshot.components}
+                      components={page === "overview" ? overviewArchitecture : snapshot.components}
                       relationships={snapshot.relationships}
-                      matchingComponents={filtered}
+                      matchingComponents={page === "overview" ? overviewArchitecture : filtered}
                       selectedId={selectedId}
                       onSelect={setSelectedId}
                       positions={positions}
@@ -544,11 +606,13 @@ function LoadedDashboard({
                     </span>
                   </div>
                 </div>
-                <ComponentDetails
-                  component={selected}
-                  snapshot={snapshot}
-                  onSelect={setSelectedId}
-                />
+                {page === "architecture" && (
+                  <ComponentDetails
+                    component={selected}
+                    snapshot={snapshot}
+                    onSelect={setSelectedId}
+                  />
+                )}
               </div>
             </section>
           ) : (
@@ -646,6 +710,114 @@ function LoadedDashboard({
           </footer>
         </div>
       </main>
+      {addProjectOpen && (
+        <AddProjectDialog onClose={onCloseAddProject} onRegister={onRegisterProject} />
+      )}
+    </div>
+  );
+}
+
+function AddProjectDialog({
+  onClose,
+  onRegister,
+}: {
+  onClose: () => void;
+  onRegister: (input: { rootPath: string; name?: string }) => Promise<void>;
+}) {
+  const [rootPath, setRootPath] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    if (!rootPath.trim()) {
+      setError("Enter the full folder path on the machine running SeedBoard.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const trimmedName = name.trim();
+      await onRegister({
+        rootPath: rootPath.trim(),
+        ...(trimmedName ? { name: trimmedName } : {}),
+      });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The project could not be registered.");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !submitting) onClose();
+      }}
+    >
+      <section
+        className="add-project-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-project-title"
+      >
+        <div className="dialog-heading">
+          <div>
+            <span className="eyebrow">LOCAL REPOSITORY</span>
+            <h2 id="add-project-title">Add a project</h2>
+          </div>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Close add project dialog"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <p className="dialog-description">
+          Enter a folder path on the computer running SeedBoard. SeedBoard reads it locally and
+          keeps the path private.
+        </p>
+        <form className="add-project-form" onSubmit={(event) => void submit(event)}>
+          <label htmlFor="project-root-path">Project folder path</label>
+          <input
+            id="project-root-path"
+            autoFocus
+            required
+            maxLength={4096}
+            value={rootPath}
+            onChange={(event) => setRootPath(event.target.value)}
+            placeholder="C:/Users/you/source/my-app or /home/you/my-app"
+          />
+          <p className="field-help">Use an existing folder path, not a GitHub URL.</p>
+          <label htmlFor="project-display-name">
+            Display name <span>(optional)</span>
+          </label>
+          <input
+            id="project-display-name"
+            maxLength={200}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Defaults to the folder name"
+          />
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="dialog-actions">
+            <button className="soft-button" type="button" onClick={onClose} disabled={submitting}>
+              Cancel
+            </button>
+            <button className="soft-button selected" type="submit" disabled={submitting}>
+              {submitting ? "Adding…" : "Add project"}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }
@@ -671,11 +843,13 @@ function SnapshotError({
   code,
   onRetry,
   onScan,
+  onAddProject,
 }: {
   message: string;
   code: string;
   onRetry: () => void;
   onScan?: (() => void) | undefined;
+  onAddProject?: (() => void) | undefined;
 }) {
   return (
     <main className="error-shell">
@@ -700,9 +874,14 @@ function SnapshotError({
         <button className="soft-button" onClick={onRetry}>
           <ArrowUpRight size={14} /> Retry snapshot
         </button>
-        {code === "PROJECTS_EMPTY" && (
-          <span className="error-command">seedboard project register &lt;folder&gt;</span>
-        )}
+        {code === "PROJECTS_EMPTY" &&
+          (onAddProject ? (
+            <button className="soft-button" onClick={onAddProject}>
+              <Plus size={14} aria-hidden="true" /> Add project
+            </button>
+          ) : (
+            <span className="error-command">seedboard project register &lt;folder&gt;</span>
+          ))}
       </div>
     </main>
   );
@@ -730,10 +909,14 @@ function AssessmentView({
   snapshot: Snapshot;
   source: SnapshotSource;
 }) {
+  const [suggestionCategory, setSuggestionCategory] = useState<SuggestionCategoryFilter>("all");
+  const [documentationQuery, setDocumentationQuery] = useState("");
   const [workingId, setWorkingId] = useState<string | null>(null);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState("");
   const evidence = new Map(snapshot.evidence.map((item) => [item.id, item]));
+  const categories = ["feat", "chore", "refactor", "style", "fix", "docs"] as const;
+  const suggestions = filterSuggestionsByCategory(snapshot.suggestions, suggestionCategory);
   const download = async (format: "json" | "backlog" | "appendix") => {
     try {
       if (!source.exportSnapshot) throw new Error("Exports are available for local API snapshots.");
@@ -806,8 +989,34 @@ function AssessmentView({
             {notice}
           </p>
         )}
-        {snapshot.suggestions.length ? (
-          snapshot.suggestions.map((item) => (
+        <div className="suggestion-filter-toolbar">
+          <div className="suggestion-filters" role="group" aria-label="Filter suggestions by type">
+            <button
+              type="button"
+              className={`suggestion-filter ${suggestionCategory === "all" ? "active" : ""}`}
+              aria-pressed={suggestionCategory === "all"}
+              onClick={() => setSuggestionCategory("all")}
+            >
+              All types
+            </button>
+            {categories.map((category) => (
+              <button
+                type="button"
+                className={`suggestion-filter ${suggestionCategory === category ? "active" : ""}`}
+                aria-pressed={suggestionCategory === category}
+                key={category}
+                onClick={() => setSuggestionCategory(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+          <span className="filter-result-count" role="status" aria-live="polite">
+            Showing {suggestions.length} of {snapshot.suggestions.length} suggestions
+          </span>
+        </div>
+        {suggestions.length ? (
+          suggestions.map((item) => (
             <article className="panel-card assessment-card" key={item.id}>
               <div className="assessment-card-head">
                 <span className="category-mark blue">{item.category}</span>
@@ -859,11 +1068,20 @@ function AssessmentView({
               </div>
             </article>
           ))
-        ) : (
+        ) : snapshot.suggestions.length === 0 ? (
           <div className="empty-state compact-empty">
             <Sparkles size={22} />
             <strong>No evidence-backed suggestions</strong>
             <span>Unknown or unsupported inputs do not become asserted defects.</span>
+          </div>
+        ) : (
+          <div className="empty-state compact-empty">
+            <Sparkles size={22} />
+            <strong>No suggestions match this type</strong>
+            <span>Choose another category or show all suggestion types.</span>
+            <button className="soft-button" onClick={() => setSuggestionCategory("all")}>
+              Show all types
+            </button>
           </div>
         )}
       </section>
@@ -956,6 +1174,11 @@ function AssessmentView({
   }
 
   const documentation = new Map(snapshot.documentation.map((item) => [item.componentId, item]));
+  const documentationComponents = filterDocumentationComponents(
+    snapshot.components,
+    snapshot.documentation,
+    documentationQuery,
+  );
   return (
     <section className="assessment-view">
       <div className="view-toolbar">
@@ -964,6 +1187,31 @@ function AssessmentView({
           <p>{snapshot.components.length} components · gaps remain visible until reviewed.</p>
         </div>
         {downloads}
+      </div>
+      <div className="documentation-controls">
+        <label className="documentation-search">
+          <Search size={17} aria-hidden="true" />
+          <span className="sr-only">Search documentation</span>
+          <input
+            type="search"
+            value={documentationQuery}
+            onChange={(event) => setDocumentationQuery(event.target.value)}
+            placeholder="Search services, versions, status, links…"
+          />
+          {documentationQuery && (
+            <button
+              type="button"
+              className="clear-documentation-search"
+              onClick={() => setDocumentationQuery("")}
+              aria-label="Clear documentation search"
+            >
+              Clear
+            </button>
+          )}
+        </label>
+        <span className="filter-result-count" role="status" aria-live="polite">
+          Showing {documentationComponents.length} of {snapshot.components.length} documents
+        </span>
       </div>
       <div className="table-wrap">
         <table className="inventory-table">
@@ -977,7 +1225,7 @@ function AssessmentView({
             </tr>
           </thead>
           <tbody>
-            {snapshot.components.map((component) => {
+            {documentationComponents.map((component) => {
               const doc = documentation.get(component.id);
               return (
                 <tr key={component.id}>
@@ -1020,6 +1268,16 @@ function AssessmentView({
                 </tr>
               );
             })}
+            {documentationComponents.length === 0 && (
+              <tr>
+                <td className="documentation-empty-row" colSpan={5}>
+                  <strong>No documentation matches your search.</strong>
+                  <button className="soft-button" onClick={() => setDocumentationQuery("")}>
+                    Clear search
+                  </button>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -1185,6 +1443,8 @@ function MetricCard({
   icon: Icon,
   tone,
   trend,
+  destination,
+  onClick,
 }: {
   label: string;
   value: number;
@@ -1192,9 +1452,16 @@ function MetricCard({
   icon: typeof Boxes;
   tone: string;
   trend: string;
+  destination: string;
+  onClick: () => void;
 }) {
   return (
-    <article className="metric-card">
+    <button
+      className="metric-card metric-card-link"
+      onClick={onClick}
+      aria-label={`${label}: ${value}. Open ${destination}.`}
+      title={`Open ${destination}`}
+    >
       <div className={`metric-icon ${tone}`}>
         <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
       </div>
@@ -1209,7 +1476,7 @@ function MetricCard({
         <span>{label}</span>
       </div>
       <div className="metric-helper">{helper}</div>
-    </article>
+    </button>
   );
 }
 

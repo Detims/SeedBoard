@@ -122,7 +122,21 @@ describe("local API security and envelopes", () => {
     expect(noCsrfHeader.json().error.code).toBe("REQUEST_HEADER_REQUIRED");
   });
 
-  it("omits filesystem roots and does not register roots through HTTP", async () => {
+  it("registers a project through same-origin API requests without exposing its root", async () => {
+    const registered = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects",
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { rootPath: root, name: "Registered from dashboard" },
+    });
+    expect(registered.statusCode).toBe(201);
+    expect(registered.json().data).toMatchObject({
+      id: project.id,
+      name: "Registered from dashboard",
+    });
+    expect(registered.body).not.toContain(root);
+    expect(registered.json().data).not.toHaveProperty("rootPath");
+
     const response = await app.inject({
       method: "GET",
       url: "/api/v1/projects",
@@ -130,17 +144,36 @@ describe("local API security and envelopes", () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json().data).toEqual([
-      { id: project.id, name: project.name, createdAt: project.createdAt },
+      { id: project.id, name: "Registered from dashboard", createdAt: project.createdAt },
     ]);
     expect(response.body).not.toContain(root);
+  });
 
-    const register = await app.inject({
+  it("rejects invalid project registrations", async () => {
+    const missingRoot = await app.inject({
       method: "POST",
-      url: "/api/v1/projects/register",
+      url: "/api/v1/projects",
       headers: authHeaders({ "content-type": "application/json" }),
-      payload: { path: root },
+      payload: { rootPath: join(root, "missing") },
     });
-    expect(register.statusCode).toBe(404);
+    expect(missingRoot.statusCode).toBe(400);
+    expect(missingRoot.json().error.code).toBe("BAD_REQUEST");
+
+    const controlCharacter = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects",
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { rootPath: `invalid\u0000path` },
+    });
+    expect(controlCharacter.statusCode).toBe(400);
+
+    const unexpectedField = await app.inject({
+      method: "POST",
+      url: "/api/v1/projects",
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { rootPath: root, extra: true },
+    });
+    expect(unexpectedField.statusCode).toBe(400);
   });
 
   it("bounds pagination and requires JSON for mutation requests", async () => {

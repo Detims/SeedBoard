@@ -22,6 +22,7 @@ describe("OpenAPI contract", () => {
     const document = parseDocument(specText, { uniqueKeys: true }).toJS() as OpenApiDocument;
     const expected = [
       "GET /projects",
+      "POST /projects",
       "POST /projects/{projectId}/scans",
       "GET /scans/{scanId}",
       "POST /scans/{scanId}/cancel",
