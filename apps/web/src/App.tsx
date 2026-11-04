@@ -16,13 +16,15 @@ import {
   GitBranch,
   LayoutDashboard,
   ListFilter,
+  Plus,
   Search,
   Settings2,
   ShieldCheck,
   Sparkles,
   Workflow,
+  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
@@ -73,6 +75,17 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
   const [snapshotState, setSnapshotState] = useState<SnapshotState>({ status: "loading" });
   const [retry, setRetry] = useState(0);
   const [scanNotice, setScanNotice] = useState("");
+  const [addProjectOpen, setAddProjectOpen] = useState(false);
+
+  const registerProject = async (input: { rootPath: string; name?: string }) => {
+    if (!snapshotSource.registerProject) {
+      throw new Error("Project registration is available when using the local API.");
+    }
+    await snapshotSource.registerProject(input);
+    setAddProjectOpen(false);
+    setSnapshotState({ status: "loading" });
+    setRetry((value) => value + 1);
+  };
 
   useEffect(() => {
     let active = true;
@@ -99,30 +112,36 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
   if (snapshotState.status === "loading") return <SnapshotLoading />;
   if (snapshotState.status === "error")
     return (
-      <SnapshotError
-        message={snapshotState.message}
-        code={snapshotState.code}
-        onRetry={() => setRetry((value) => value + 1)}
-        onScan={
-          snapshotSource.scanLatest
-            ? async () => {
-                setSnapshotState({ status: "loading" });
-                try {
-                  setSnapshotState({
-                    status: "ready",
-                    snapshot: await snapshotSource.scanLatest!(),
-                  });
-                } catch (error) {
-                  setSnapshotState({
-                    status: "error",
-                    message: error instanceof Error ? error.message : "The scan failed.",
-                    code: error instanceof LocalApiError ? error.code : "SCAN_FAILED",
-                  });
+      <>
+        <SnapshotError
+          message={snapshotState.message}
+          code={snapshotState.code}
+          onRetry={() => setRetry((value) => value + 1)}
+          onAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
+          onScan={
+            snapshotSource.scanLatest
+              ? async () => {
+                  setSnapshotState({ status: "loading" });
+                  try {
+                    setSnapshotState({
+                      status: "ready",
+                      snapshot: await snapshotSource.scanLatest!(),
+                    });
+                  } catch (error) {
+                    setSnapshotState({
+                      status: "error",
+                      message: error instanceof Error ? error.message : "The scan failed.",
+                      code: error instanceof LocalApiError ? error.code : "SCAN_FAILED",
+                    });
+                  }
                 }
-              }
-            : undefined
-        }
-      />
+              : undefined
+          }
+        />
+        {addProjectOpen && (
+          <AddProjectDialog onClose={() => setAddProjectOpen(false)} onRegister={registerProject} />
+        )}
+      </>
     );
   const snapshot = snapshotState.snapshot;
   return (
@@ -130,6 +149,10 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
       snapshot={snapshot}
       snapshotSource={snapshotSource}
       scanNotice={scanNotice}
+      onOpenAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
+      addProjectOpen={addProjectOpen}
+      onCloseAddProject={() => setAddProjectOpen(false)}
+      onRegisterProject={registerProject}
       onScan={async () => {
         if (!snapshotSource.scanLatest) return;
         setScanNotice(
@@ -155,11 +178,19 @@ function LoadedDashboard({
   snapshotSource,
   scanNotice,
   onScan,
+  onOpenAddProject,
+  addProjectOpen,
+  onCloseAddProject,
+  onRegisterProject,
 }: {
   snapshot: Snapshot;
   snapshotSource: SnapshotSource;
   scanNotice: string;
   onScan: () => void;
+  onOpenAddProject?: (() => void) | undefined;
+  addProjectOpen: boolean;
+  onCloseAddProject: () => void;
+  onRegisterProject: (input: { rootPath: string; name?: string }) => Promise<void>;
 }) {
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
@@ -316,6 +347,11 @@ function LoadedDashboard({
                 <Command size={11} aria-label="Command" /> K
               </kbd>
             </label>
+            {onOpenAddProject && (
+              <button className="soft-button add-project-button" onClick={onOpenAddProject}>
+                <Plus size={15} aria-hidden="true" /> Add project
+              </button>
+            )}
             {snapshot.demo ? (
               <span className="demo-pill">
                 <span className="demo-dot" /> DEMO DATA
@@ -396,6 +432,8 @@ function LoadedDashboard({
               icon={Boxes}
               tone="blue"
               trend="Snapshot count"
+              destination="Component inventory"
+              onClick={() => setPage("inventory")}
             />
             <MetricCard
               label="Connections"
@@ -404,6 +442,8 @@ function LoadedDashboard({
               icon={Cable}
               tone="violet"
               trend="Across the stack"
+              destination="Architecture map"
+              onClick={() => setPage("architecture")}
             />
             <MetricCard
               label="Unknown observations"
@@ -412,6 +452,8 @@ function LoadedDashboard({
               icon={CircleHelp}
               tone="amber"
               trend="Worth verifying"
+              destination="Component inventory"
+              onClick={() => setPage("inventory")}
             />
             <MetricCard
               label="Docs need review"
@@ -420,6 +462,8 @@ function LoadedDashboard({
               icon={BookOpen}
               tone="rose"
               trend={`${counts.total ? Math.round(((counts.documented + counts.partialDocumentation) / counts.total) * 100) : 0}% coverage`}
+              destination="Documentation"
+              onClick={() => setPage("documentation")}
             />
           </section>
 
@@ -646,6 +690,114 @@ function LoadedDashboard({
           </footer>
         </div>
       </main>
+      {addProjectOpen && (
+        <AddProjectDialog onClose={onCloseAddProject} onRegister={onRegisterProject} />
+      )}
+    </div>
+  );
+}
+
+function AddProjectDialog({
+  onClose,
+  onRegister,
+}: {
+  onClose: () => void;
+  onRegister: (input: { rootPath: string; name?: string }) => Promise<void>;
+}) {
+  const [rootPath, setRootPath] = useState("");
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    if (!rootPath.trim()) {
+      setError("Enter the full folder path on the machine running SeedBoard.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const trimmedName = name.trim();
+      await onRegister({
+        rootPath: rootPath.trim(),
+        ...(trimmedName ? { name: trimmedName } : {}),
+      });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "The project could not be registered.");
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !submitting) onClose();
+      }}
+    >
+      <section
+        className="add-project-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-project-title"
+      >
+        <div className="dialog-heading">
+          <div>
+            <span className="eyebrow">LOCAL REPOSITORY</span>
+            <h2 id="add-project-title">Add a project</h2>
+          </div>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Close add project dialog"
+            onClick={onClose}
+            disabled={submitting}
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <p className="dialog-description">
+          Enter a folder path on the computer running SeedBoard. SeedBoard reads it locally and
+          keeps the path private.
+        </p>
+        <form className="add-project-form" onSubmit={(event) => void submit(event)}>
+          <label htmlFor="project-root-path">Project folder path</label>
+          <input
+            id="project-root-path"
+            autoFocus
+            required
+            maxLength={4096}
+            value={rootPath}
+            onChange={(event) => setRootPath(event.target.value)}
+            placeholder="C:/Users/you/source/my-app or /home/you/my-app"
+          />
+          <p className="field-help">Use an existing folder path, not a GitHub URL.</p>
+          <label htmlFor="project-display-name">
+            Display name <span>(optional)</span>
+          </label>
+          <input
+            id="project-display-name"
+            maxLength={200}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Defaults to the folder name"
+          />
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="dialog-actions">
+            <button className="soft-button" type="button" onClick={onClose} disabled={submitting}>
+              Cancel
+            </button>
+            <button className="soft-button selected" type="submit" disabled={submitting}>
+              {submitting ? "Adding…" : "Add project"}
+            </button>
+          </div>
+        </form>
+      </section>
     </div>
   );
 }
@@ -671,11 +823,13 @@ function SnapshotError({
   code,
   onRetry,
   onScan,
+  onAddProject,
 }: {
   message: string;
   code: string;
   onRetry: () => void;
   onScan?: (() => void) | undefined;
+  onAddProject?: (() => void) | undefined;
 }) {
   return (
     <main className="error-shell">
@@ -700,9 +854,14 @@ function SnapshotError({
         <button className="soft-button" onClick={onRetry}>
           <ArrowUpRight size={14} /> Retry snapshot
         </button>
-        {code === "PROJECTS_EMPTY" && (
-          <span className="error-command">seedboard project register &lt;folder&gt;</span>
-        )}
+        {code === "PROJECTS_EMPTY" &&
+          (onAddProject ? (
+            <button className="soft-button" onClick={onAddProject}>
+              <Plus size={14} aria-hidden="true" /> Add project
+            </button>
+          ) : (
+            <span className="error-command">seedboard project register &lt;folder&gt;</span>
+          ))}
       </div>
     </main>
   );
@@ -1185,6 +1344,8 @@ function MetricCard({
   icon: Icon,
   tone,
   trend,
+  destination,
+  onClick,
 }: {
   label: string;
   value: number;
@@ -1192,9 +1353,16 @@ function MetricCard({
   icon: typeof Boxes;
   tone: string;
   trend: string;
+  destination: string;
+  onClick: () => void;
 }) {
   return (
-    <article className="metric-card">
+    <button
+      className="metric-card metric-card-link"
+      onClick={onClick}
+      aria-label={`${label}: ${value}. Open ${destination}.`}
+      title={`Open ${destination}`}
+    >
       <div className={`metric-icon ${tone}`}>
         <Icon size={17} strokeWidth={1.8} aria-hidden="true" />
       </div>
@@ -1209,7 +1377,7 @@ function MetricCard({
         <span>{label}</span>
       </div>
       <div className="metric-helper">{helper}</div>
-    </article>
+    </button>
   );
 }
 
