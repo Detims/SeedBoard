@@ -50,7 +50,7 @@ const entries = Object.entries(lock.packages ?? {})
 const content = `${JSON.stringify({ generatedFrom: "pnpm-lock.yaml", packageCount: entries.length, packages: entries }, null, 2)}\n`;
 const output = resolve(root, "docs/dependency-inventory.json");
 if (process.argv.includes("--check")) {
-  const existing = await readFile(output, "utf8").catch(() => "");
+  const existing = (await readFile(output, "utf8").catch(() => "")).replaceAll("\r\n", "\n");
   if (existing !== content) {
     console.error("docs/dependency-inventory.json is stale; run pnpm docs:inventory:generate.");
     process.exitCode = 1;
