@@ -4,6 +4,7 @@ import demoSnapshot from "../../../fixtures/demo.snapshot.json";
 import {
   deterministicLayout,
   filterComponents,
+  filterOverviewArchitectureComponents,
   getInventoryCounts,
   visibleRelationships,
 } from "../src/domain.js";
@@ -33,6 +34,15 @@ describe("dashboard inventory behavior", () => {
       "cmp-db",
       "cmp-migration",
     ]);
+    expect(snapshot.components).toHaveLength(11);
+  });
+
+  it("keeps shared components out of the overview architecture preview", () => {
+    const preview = filterOverviewArchitectureComponents(snapshot.components);
+    expect(preview.every((component) => component.layer !== "shared")).toBe(true);
+    expect(preview.map((component) => component.layer)).toEqual(
+      expect.arrayContaining(["frontend", "backend", "data"]),
+    );
     expect(snapshot.components).toHaveLength(11);
   });
 
