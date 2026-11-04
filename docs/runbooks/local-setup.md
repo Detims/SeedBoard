@@ -12,14 +12,14 @@ SeedBoard runs locally and binds its API and dashboard to loopback. Default scan
 
 From the repository root in PowerShell:
 
-1. Run `node --version` and `pnpm --version`. This project requires Node.js 24.22.2 and pnpm 12.16.1.
-2. Install with `pnpm dlx pnpm@12.16.1 install --frozen-lockfile --ignore-scripts`.
-3. Run `pnpm dlx pnpm@12.16.1 contracts:check`.
-4. Run `pnpm dlx pnpm@12.16.1 typecheck`.
-5. Run `pnpm dlx pnpm@12.16.1 test`.
-6. Run `pnpm dlx pnpm@12.16.1 build`.
-7. Run `pnpm dlx pnpm@12.16.1 docs:check`.
-8. Start with `pnpm dlx pnpm@12.16.1 dev`.
+1. `node --version` and `pnpm --version` should report the pinned versions.
+2. `pnpm install --frozen-lockfile --ignore-scripts`.
+3. `pnpm contracts:check`.
+4. `pnpm typecheck`.
+5. `pnpm test`.
+6. `pnpm build`.
+7. `pnpm docs:check`.
+8. `pnpm dev`.
 
 The API is at `http://127.0.0.1:4317`; the dashboard is at `http://127.0.0.1:5173`. The Vite development proxy forwards only `/api` to the loopback API. The dashboard obtains its short-lived same-origin session itself. Use `http://127.0.0.1:5173/?demo=1` to view the labeled synthetic fixture without registering a repository.
 
@@ -30,7 +30,7 @@ Stop both local processes with Ctrl+C in the terminal running `pnpm dev`.
 In another PowerShell window from the repository root:
 
 ```powershell
-pnpm dlx pnpm@12.16.1 --filter @modernizer/cli exec node dist/index.js project register "C:\path\to\your\repository" --name "Optional label"
+pnpm --filter @modernizer/cli exec node dist/index.js project register "C:\path\to\your\repository" --name "Optional label"
 ```
 
 Registration stores the chosen folder as a trusted local root; it does not read its files. Reload the dashboard and choose **Run first scan**. A scan reads eligible metadata within the configured file, byte, depth, and component limits. Unsupported files and incomplete collection remain visible as coverage issues.
@@ -38,7 +38,7 @@ Registration stores the chosen folder as a trusted local root; it does not read 
 To list locally registered projects:
 
 ```powershell
-pnpm dlx pnpm@12.16.1 --filter @modernizer/cli exec node dist/index.js project list
+pnpm --filter @modernizer/cli exec node dist/index.js project list
 ```
 
 The browser cannot choose or submit a filesystem root. The first version collects Node manifests/npm lockfiles, GitHub workflow YAML, and migration filenames. Provider runs, deployment versions, applied database migration state, and non-Node stacks remain unknown unless an explicit future adapter supplies evidence.
