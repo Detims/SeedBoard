@@ -7,6 +7,8 @@ import {
   getInventoryCounts,
   visibleRelationships,
 } from "../src/domain.js";
+import { filterDocumentationComponents, filterSuggestionsByCategory } from "../src/viewFilters.js";
+import type { Documentation, Suggestion } from "@modernizer/contracts";
 
 const snapshot = demoSnapshot as Snapshot;
 
@@ -46,5 +48,48 @@ describe("dashboard inventory behavior", () => {
   it("does not display relationships whose endpoint is filtered out", () => {
     const onlyWeb = new Set(["cmp-web"]);
     expect(visibleRelationships(snapshot.relationships, onlyWeb)).toEqual([]);
+  });
+});
+
+describe("documentation and suggestion filters", () => {
+  it("searches documentation across components, versions, references, paths, status, and gaps", () => {
+    const component = snapshot.components.find(({ id }) => id === "cmp-api")!;
+    const records = [
+      {
+        componentId: component.id,
+        status: "partial",
+        officialReferences: [
+          { title: "Fastify Guide", url: "https://fastify.dev/docs", verifiedAt: null },
+        ],
+        internalPaths: ["docs/api-operations.md"],
+        reviewedAt: null,
+        gap: "Authentication setup needs review",
+      },
+    ] satisfies Documentation[];
+
+    expect(filterDocumentationComponents([component], records, "FASTIFY")).toEqual([component]);
+    expect(filterDocumentationComponents([component], records, "API-OPERATIONS")).toEqual([
+      component,
+    ]);
+    expect(filterDocumentationComponents([component], records, "needs review")).toEqual([
+      component,
+    ]);
+    expect(filterDocumentationComponents([component], records, "no such reference")).toEqual([]);
+    expect(filterDocumentationComponents([component], records, "  ")).toEqual([component]);
+  });
+
+  it("filters all six suggestion categories and can restore the complete list", () => {
+    const base = snapshot.suggestions[0]!;
+    const suggestions = ["feat", "chore", "refactor", "style", "fix", "docs"].map(
+      (category, index) => ({ ...base, id: `suggestion-${index}`, category }),
+    ) satisfies Suggestion[];
+
+    for (const category of ["feat", "chore", "refactor", "style", "fix", "docs"] as const) {
+      expect(
+        filterSuggestionsByCategory(suggestions, category).map((item) => item.category),
+      ).toEqual([category]);
+    }
+    expect(filterSuggestionsByCategory(suggestions, "all")).toHaveLength(6);
+    expect(filterSuggestionsByCategory([], "fix")).toEqual([]);
   });
 });
