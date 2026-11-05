@@ -16,6 +16,11 @@ import {
 import { LocalRequestSecurity, localSecurityConstants, type SecurityDecision } from "./security.js";
 import { ScanQueue, ScannerUnavailableError, type ScanRunner } from "./scanQueue.js";
 import { checkPackageAdvisories, type AdvisoryFetch } from "./packageAdvisories.js";
+import {
+  inspectRepositoryChanges,
+  RepositoryRestoreConflict,
+  restoreRepositoryFiles,
+} from "./repositoryChanges.js";
 
 export type AppOptions = {
   store?: ModernizerStore;
@@ -99,6 +104,19 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
           allowed: false,
           statusCode: 400,
           code: "CONFLICT",
+          message: error.message,
+        },
+        409,
+      );
+    }
+    if (error instanceof RepositoryRestoreConflict) {
+      return sendError(
+        reply,
+        request,
+        {
+          allowed: false,
+          statusCode: 400,
+          code: "REPOSITORY_CHANGED",
           message: error.message,
         },
         409,
@@ -254,6 +272,46 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     },
   );
 
+  app.get<{ Params: SnapshotIdParams }>(
+    "/api/v1/snapshots/:snapshotId/repository-changes",
+    async (request) => {
+      const result = store.getSnapshot(request.params.snapshotId);
+      if (!result) throw new ResourceNotFoundError("Snapshot not found.");
+      const project = store.getProject(result.summary.projectId);
+      if (!project) throw new ResourceNotFoundError("Project not found.");
+      return success(
+        request,
+        await inspectRepositoryChanges(project.rootPath, result.summary.sourceRevision),
+      );
+    },
+  );
+
+  app.post<{ Params: ProjectIdParams; Body: unknown }>(
+    "/api/v1/projects/:projectId/restore-files",
+    async (request) => {
+      const input = validateRestoreFiles(request.body);
+      const project = store.getProject(request.params.projectId);
+      if (!project) throw new ResourceNotFoundError("Project not found.");
+      const snapshot = store.getSnapshot(input.snapshotId);
+      if (!snapshot) throw new ResourceNotFoundError("Snapshot not found.");
+      if (snapshot.summary.projectId !== project.id) {
+        throw new ScanConflictError("The selected scan does not belong to this project.");
+      }
+      const restoredPaths = await restoreRepositoryFiles(
+        project.rootPath,
+        snapshot.summary.sourceRevision,
+        {
+          currentRevision: input.currentRevision,
+          changeToken: input.changeToken,
+          paths: input.paths,
+        },
+      );
+      return success(request, {
+        restoredPaths,
+        changes: await inspectRepositoryChanges(project.rootPath, snapshot.summary.sourceRevision),
+      });
+    },
+  );
   app.get<{ Params: SnapshotIdParams; Querystring: Query }>(
     "/api/v1/snapshots/:snapshotId/diff",
     async (request) => {
@@ -490,6 +548,38 @@ function validateDecision(input: unknown): {
     throw new TypeError("Dismissal requires a reason.");
   }
   return { state: state as "open" | "accepted" | "dismissed", reason };
+}
+
+function validateRestoreFiles(input: unknown): {
+  snapshotId: string;
+  currentRevision: string;
+  changeToken: string;
+  paths: string[];
+} {
+  if (!isRecord(input)) throw new TypeError("File restore details are required.");
+  if (typeof input.snapshotId !== "string" || !input.snapshotId || input.snapshotId.length > 200) {
+    throw new TypeError("A valid scan ID is required.");
+  }
+  if (typeof input.currentRevision !== "string" || input.currentRevision.length > 64) {
+    throw new TypeError("A valid current repository revision is required.");
+  }
+  if (typeof input.changeToken !== "string" || input.changeToken.length !== 64) {
+    throw new TypeError("A valid repository change confirmation is required.");
+  }
+  if (
+    !Array.isArray(input.paths) ||
+    input.paths.length < 1 ||
+    input.paths.length > 100 ||
+    input.paths.some((path) => typeof path !== "string" || path.length > 1000)
+  ) {
+    throw new TypeError("Select between 1 and 100 valid file paths to restore.");
+  }
+  return {
+    snapshotId: input.snapshotId,
+    currentRevision: input.currentRevision,
+    changeToken: input.changeToken,
+    paths: input.paths as string[],
+  };
 }
 
 type DiffEntity = { id: string; values: Record<string, unknown> };

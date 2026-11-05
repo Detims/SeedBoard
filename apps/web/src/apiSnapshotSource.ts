@@ -1,5 +1,10 @@
 import { assertSnapshot, type Snapshot } from "@modernizer/contracts";
-import type { PackageAdvisoryReport, ProjectSummary, SnapshotSource } from "./snapshotSource.js";
+import type {
+  PackageAdvisoryReport,
+  ProjectSummary,
+  RepositoryChanges,
+  SnapshotSource,
+} from "./snapshotSource.js";
 
 type Envelope<T> = { data: T; meta: { requestId: string; nextCursor?: string | null } };
 type Job = { id: string; state: string; snapshotId: string | null };
@@ -191,6 +196,29 @@ export class LocalApiSnapshotSource implements SnapshotSource {
       removed: string[];
       changed: Array<{ id: string; fields: string[] }>;
     }>(`/snapshots/${encodeURIComponent(targetId)}/diff?base=${encodeURIComponent(baseId)}`);
+  }
+
+  async getRepositoryChanges(snapshotId: string): Promise<RepositoryChanges> {
+    return this.#request<RepositoryChanges>(
+      `/snapshots/${encodeURIComponent(snapshotId)}/repository-changes`,
+    );
+  }
+
+  async restoreProjectFiles(
+    projectId: string,
+    snapshotId: string,
+    preview: Pick<RepositoryChanges, "currentRevision" | "changeToken">,
+    paths: string[],
+  ): Promise<{ restoredPaths: string[]; changes: RepositoryChanges }> {
+    return this.#request(`/projects/${encodeURIComponent(projectId)}/restore-files`, {
+      method: "POST",
+      body: JSON.stringify({
+        snapshotId,
+        currentRevision: preview.currentRevision,
+        changeToken: preview.changeToken,
+        paths,
+      }),
+    });
   }
 
   async #loadSnapshot(id: string): Promise<Snapshot> {

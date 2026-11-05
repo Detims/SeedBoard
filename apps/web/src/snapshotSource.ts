@@ -28,6 +28,14 @@ export type PackageAdvisoryReport = {
 };
 
 export type ProjectSummary = { id: string; name: string; createdAt: string };
+export type RepositoryChanges = {
+  available: boolean;
+  reason: string | null;
+  sourceRevision: string | null;
+  currentRevision: string | null;
+  changeToken: string | null;
+  files: Array<{ path: string; status: string; restorable: boolean }>;
+};
 
 export interface SnapshotSource {
   loadSnapshot(): Promise<Snapshot>;
@@ -71,6 +79,13 @@ export interface SnapshotSource {
     removed: string[];
     changed: Array<{ id: string; fields: string[] }>;
   }>;
+  getRepositoryChanges?(snapshotId: string): Promise<RepositoryChanges>;
+  restoreProjectFiles?(
+    projectId: string,
+    snapshotId: string,
+    preview: Pick<RepositoryChanges, "currentRevision" | "changeToken">,
+    paths: string[],
+  ): Promise<{ restoredPaths: string[]; changes: RepositoryChanges }>;
   readonly mode?: "demo" | "local";
 }
 
