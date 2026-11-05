@@ -5,6 +5,7 @@ import {
   deterministicLayout,
   filterComponents,
   filterOverviewArchitectureComponents,
+  getQualityCoverageSummary,
   getInventoryCounts,
   visibleRelationships,
 } from "../src/domain.js";
@@ -58,6 +59,56 @@ describe("dashboard inventory behavior", () => {
   it("does not display relationships whose endpoint is filtered out", () => {
     const onlyWeb = new Set(["cmp-web"]);
     expect(visibleRelationships(snapshot.relationships, onlyWeb)).toEqual([]);
+  });
+
+  it("reports declaration mappings separately from runtime test and deployment status", () => {
+    const summary = getQualityCoverageSummary(snapshot);
+    expect(summary.testSuites.map(({ id }) => id)).toEqual(["cmp-tests"]);
+    expect(summary.testMappedCount).toBe(1);
+    expect(summary.testableComponentCount).toBe(5);
+    expect(summary.measuredTestCoveragePercent).toBeNull();
+    expect(summary.pipelines.map(({ id }) => id)).toEqual(["cmp-ci"]);
+    expect(summary.deployMappedCount).toBe(1);
+    expect(summary.deployableComponentCount).toBe(4);
+  });
+
+  it("flags high direct dependency counts and missing test mappings without inventing results", () => {
+    const summary = getQualityCoverageSummary(snapshot);
+    expect(summary.risks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          component: expect.objectContaining({ id: "cmp-api" }),
+          dependencyCount: 4,
+          hasTestMapping: true,
+        }),
+        expect.objectContaining({
+          component: expect.objectContaining({ id: "cmp-worker" }),
+          dependencyCount: 1,
+          hasTestMapping: false,
+        }),
+      ]),
+    );
+
+    const repeatedEnvironmentEdge = structuredClone(snapshot);
+    repeatedEnvironmentEdge.relationships.push({
+      ...repeatedEnvironmentEdge.relationships.find(({ id }) => id === "rel-09")!,
+      id: "rel-09-secondary-environment",
+      environmentIds: ["env-test"],
+    });
+    expect(
+      getQualityCoverageSummary(repeatedEnvironmentEdge).risks.find(
+        ({ component }) => component.id === "cmp-api",
+      )?.dependencyCount,
+    ).toBe(4);
+
+    const noMappings = structuredClone(snapshot);
+    noMappings.relationships = noMappings.relationships.filter(
+      ({ type }) => type !== "tests" && type !== "deploys",
+    );
+    const unknownSummary = getQualityCoverageSummary(noMappings);
+    expect(unknownSummary.testMappedCount).toBe(0);
+    expect(unknownSummary.deployMappedCount).toBe(0);
+    expect(unknownSummary.risks.every(({ hasTestMapping }) => !hasTestMapping)).toBe(true);
   });
 });
 

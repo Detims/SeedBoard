@@ -6,6 +6,8 @@ SeedBoard is a local-first dashboard for reviewing application architecture, dep
 
 A single-user local application: register a local repository through the CLI, collect bounded metadata without executing project code, and inspect immutable snapshots in a browser. The graph supports map navigation, search, filters, selection, and stored layouts; inventory, suggestions, CI/environment, data/migration, documentation, comparison, and export views use validated snapshots. Collectors currently support Node manifests, npm lockfiles, GitHub workflow declarations, and migration-file inventory. Unknown stacks remain visible with coverage states rather than fabricated versions or health.
 
+The Coverage & risks view summarizes declared test suites, explicit test/deployment mappings, and dependency concentration. It keeps measured test coverage and live CI/deployment health unknown unless those data sources are available.
+
 Scans collect bounded file metadata only. They do not execute target code, apply migrations, contact providers, or verify deployment health. Unsupported or missing evidence stays visible as unknown or incomplete.
 
 Package freshness and runtime lifecycle checks are a separate, user-initiated action in the component inventory. After explicit consent, SeedBoard sends resolved package names to the public npm registry and checks Node.js runtime lifecycle data from endoflife.date; installed versions are compared locally. It does not send project files. These sources do not represent a security vulnerability scan; unknown or unsupported version data remains unknown.

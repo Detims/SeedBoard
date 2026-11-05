@@ -15,6 +15,102 @@ export type InventoryCounts = {
 export type Point = { x: number; y: number };
 export type PositionMap = Record<string, Point>;
 
+export type QualityComponentRisk = {
+  component: Component;
+  dependencyCount: number;
+  hasTestMapping: boolean;
+};
+
+export type QualityCoverageSummary = {
+  testSuites: Component[];
+  testMappedCount: number;
+  testableComponentCount: number;
+  measuredTestCoveragePercent: number | null;
+  pipelines: Component[];
+  deployMappedCount: number;
+  deployableComponentCount: number;
+  risks: QualityComponentRisk[];
+};
+
+const testableKinds = new Set<Component["kind"]>([
+  "frontend",
+  "backend",
+  "database",
+  "migration",
+  "api_endpoint",
+]);
+
+const deployableKinds = new Set<Component["kind"]>([
+  "frontend",
+  "backend",
+  "database",
+  "api_endpoint",
+]);
+
+export const HIGH_DEPENDENCY_THRESHOLD = 3;
+
+/** Summarizes repository declarations without implying executed tests or live deployments. */
+export function getQualityCoverageSummary(snapshot: Snapshot): QualityCoverageSummary {
+  const components = new Map(snapshot.components.map((component) => [component.id, component]));
+  const testSuites = snapshot.components.filter((component) => component.kind === "test_suite");
+  const pipelines = snapshot.components.filter((component) => component.kind === "pipeline");
+  const testTargetIds = new Set(
+    snapshot.relationships
+      .filter((relationship) => relationship.type === "tests")
+      .map((relationship) => relationship.toId)
+      .filter((id) => components.has(id)),
+  );
+  const deployTargetIds = new Set(
+    snapshot.relationships
+      .filter((relationship) => relationship.type === "deploys")
+      .map((relationship) => relationship.toId)
+      .filter((id) => components.has(id)),
+  );
+  const testableComponents = snapshot.components.filter((component) =>
+    testableKinds.has(component.kind),
+  );
+  const deployableComponents = snapshot.components.filter((component) =>
+    deployableKinds.has(component.kind),
+  );
+  const dependencyTargets = new Map<string, Set<string>>();
+  for (const relationship of snapshot.relationships) {
+    if (relationship.type !== "depends_on" || !components.has(relationship.fromId)) continue;
+    const targets = dependencyTargets.get(relationship.fromId) ?? new Set<string>();
+    targets.add(relationship.toId);
+    dependencyTargets.set(relationship.fromId, targets);
+  }
+
+  const risks = testableComponents
+    .map((component) => ({
+      component,
+      dependencyCount: dependencyTargets.get(component.id)?.size ?? 0,
+      hasTestMapping: testTargetIds.has(component.id),
+    }))
+    .filter(
+      ({ dependencyCount, hasTestMapping }) =>
+        dependencyCount >= HIGH_DEPENDENCY_THRESHOLD || !hasTestMapping,
+    )
+    .sort(
+      (left, right) =>
+        Number(left.hasTestMapping) - Number(right.hasTestMapping) ||
+        right.dependencyCount - left.dependencyCount ||
+        left.component.name.localeCompare(right.component.name),
+    );
+
+  return {
+    testSuites,
+    testMappedCount: testableComponents.filter((component) => testTargetIds.has(component.id))
+      .length,
+    testableComponentCount: testableComponents.length,
+    measuredTestCoveragePercent: null,
+    pipelines,
+    deployMappedCount: deployableComponents.filter((component) => deployTargetIds.has(component.id))
+      .length,
+    deployableComponentCount: deployableComponents.length,
+    risks,
+  };
+}
+
 export interface LayoutStore {
   load(key: string): PositionMap | null;
   save(key: string, positions: PositionMap): void;

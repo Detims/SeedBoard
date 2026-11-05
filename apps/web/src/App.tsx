@@ -28,6 +28,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } fro
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
 import { PackageAdvisories } from "./components/PackageAdvisories.js";
+import { QualityCoverage } from "./components/QualityCoverage.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
 import { demoSnapshotSource, type ProjectSummary, type SnapshotSource } from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
@@ -52,6 +53,7 @@ type Page =
   | "inventory"
   | "suggestions"
   | "environments"
+  | "quality"
   | "data"
   | "documentation"
   | "comparison";
@@ -63,6 +65,7 @@ const navigation: NavItem[] = [
   { id: "inventory", label: "Component inventory", icon: Boxes },
   { id: "suggestions", label: "Suggestions", icon: Sparkles },
   { id: "environments", label: "Environments & CI", icon: GitBranch },
+  { id: "quality", label: "Coverage & risks", icon: Activity },
   { id: "data", label: "Data & migrations", icon: Database },
   { id: "documentation", label: "Documentation", icon: BookOpen },
   { id: "comparison", label: "Snapshot comparison", icon: GitBranch },
@@ -423,11 +426,13 @@ function LoadedDashboard({
                         ? "Review evidence-backed modernization suggestions before making any changes."
                         : page === "environments"
                           ? "Inspect declared environments, test gates, workflows, and known unknowns."
-                          : page === "data"
-                            ? "Review database components and migration files without implying applied state."
-                            : page === "documentation"
-                              ? "Review official references, internal guides, and explicit documentation gaps."
-                              : "Compare immutable snapshots to see added, removed, and changed objects."}
+                          : page === "quality"
+                            ? "Review test and deployment mappings, plus components that need closer attention."
+                            : page === "data"
+                              ? "Review database components and migration files without implying applied state."
+                              : page === "documentation"
+                                ? "Review official references, internal guides, and explicit documentation gaps."
+                                : "Compare immutable snapshots to see added, removed, and changed objects."}
               </p>
             </div>
             <div className="snapshot-select">
@@ -639,6 +644,14 @@ function LoadedDashboard({
                 )}
               </div>
             </section>
+          ) : page === "quality" ? (
+            <QualityCoverage
+              snapshot={snapshot}
+              onInspectComponent={(componentId) => {
+                setSelectedId(componentId);
+                setPage("inventory");
+              }}
+            />
           ) : (
             <AssessmentView page={page} snapshot={snapshot} source={snapshotSource} />
           )}
@@ -1087,6 +1100,7 @@ function pageTitle(page: Page): string {
     inventory: "Component inventory",
     suggestions: "Suggestions",
     environments: "Environments & CI",
+    quality: "Coverage & risks",
     data: "Data & migrations",
     documentation: "Documentation",
     comparison: "Snapshot comparison",
