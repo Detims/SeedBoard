@@ -102,4 +102,30 @@ describe("package status lookups", () => {
     expect(calls).toBe(2);
     expect(second.sources.every(({ cached }) => cached)).toBe(true);
   });
+
+  it("cancels a streamed provider response as soon as it exceeds the size limit", async () => {
+    clearPackageAdvisoryCache();
+    const input = snapshot();
+    input.components.find(({ id }) => id === "cmp-node")!.versions = [];
+    let cancelled = false;
+    const response = new Response(
+      new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new Uint8Array(128_001).fill(120));
+        },
+        cancel() {
+          cancelled = true;
+        },
+      }),
+    );
+    expect(response.headers.get("content-length")).toBeNull();
+
+    const report = await checkPackageAdvisories(input, {
+      fetcher: async () => response,
+      now: () => new Date("2026-11-04T12:00:00.000Z"),
+    });
+
+    expect(cancelled).toBe(true);
+    expect(report.packages.every(({ status }) => status === "unknown")).toBe(true);
+  });
 });

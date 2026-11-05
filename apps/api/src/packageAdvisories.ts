@@ -201,9 +201,12 @@ async function readCachedJson(
     });
     if (!response.ok) return null;
     const length = Number(response.headers.get("content-length") ?? 0);
-    if (length > responseSizeLimit) return null;
-    const text = await response.text();
-    if (text.length > responseSizeLimit) return null;
+    if (length > responseSizeLimit) {
+      await response.body?.cancel();
+      return null;
+    }
+    const text = await readBoundedText(response);
+    if (text === null) return null;
     const value: unknown = JSON.parse(text);
     const retrievedAt = now().toISOString();
     for (const [key, entry] of cache) {
@@ -217,6 +220,30 @@ async function readCachedJson(
     return { value, observation: { retrievedAt, cached: false } };
   } catch {
     return null;
+  }
+}
+
+async function readBoundedText(response: Response): Promise<string | null> {
+  const reader = response.body?.getReader();
+  if (!reader) return null;
+  const decoder = new TextDecoder();
+  const chunks: string[] = [];
+  let byteCount = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      byteCount += value.byteLength;
+      if (byteCount > responseSizeLimit) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(decoder.decode(value, { stream: true }));
+    }
+    chunks.push(decoder.decode());
+    return chunks.join("");
+  } finally {
+    reader.releaseLock();
   }
 }
 
