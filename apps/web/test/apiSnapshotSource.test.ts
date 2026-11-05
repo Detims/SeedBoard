@@ -69,6 +69,7 @@ describe("local API project switching", () => {
 
     expect(snapshot.projectId).toBe("project-b");
     expect(storage.get("modernizer:last-project")).toBe("project-b");
+    expect(source.getSelectedProject()).toMatchObject({ id: "project-b", name: "Project Beta" });
     expect(urls).toContain("/api/v1/projects/project-b/snapshots?limit=1");
     expect(urls).toContain("/api/v1/snapshots/snapshot-b-latest");
   });
