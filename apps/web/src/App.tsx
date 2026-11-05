@@ -1706,8 +1706,8 @@ function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: Snap
         {!snapshot.demo && (
           <p className="restore-safety-note">
             Restoring overwrites selected tracked files with their contents from the scan commit.
-            Review the paths carefully and keep a separate backup of work you may need. Staged and
-            staged paths are protected and untracked files are not included.
+            Review the paths carefully and keep a separate backup of work you may need. Staged paths
+            are protected, and untracked files are not included.
           </p>
         )}
         {snapshot.demo ? (
