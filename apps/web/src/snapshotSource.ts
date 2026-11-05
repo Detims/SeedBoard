@@ -1,8 +1,12 @@
 import { assertSnapshot, type Snapshot } from "@modernizer/contracts";
 import demoSnapshot from "../../../fixtures/demo.snapshot.json";
 
+export type ProjectSummary = { id: string; name: string; createdAt: string };
+
 export interface SnapshotSource {
   loadSnapshot(): Promise<Snapshot>;
+  listProjects?(): Promise<ProjectSummary[]>;
+  selectProject?(projectId: string): Promise<Snapshot>;
   registerProject?(input: { rootPath: string; name?: string }): Promise<{
     id: string;
     name: string;

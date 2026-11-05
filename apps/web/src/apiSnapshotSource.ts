@@ -1,8 +1,7 @@
 import { assertSnapshot, type Snapshot } from "@modernizer/contracts";
-import type { SnapshotSource } from "./snapshotSource.js";
+import type { ProjectSummary, SnapshotSource } from "./snapshotSource.js";
 
 type Envelope<T> = { data: T; meta: { requestId: string; nextCursor?: string | null } };
-type Project = { id: string; name: string; createdAt: string };
 type Job = { id: string; state: string; snapshotId: string | null };
 
 export class LocalApiError extends Error {
@@ -22,7 +21,7 @@ export class LocalApiSnapshotSource implements SnapshotSource {
 
   async loadSnapshot(): Promise<Snapshot> {
     await this.#bootstrap();
-    const projects = await this.#request<Project[]>("/projects");
+    const projects = await this.listProjects();
     if (projects.length === 0)
       throw new LocalApiError(
         "No project is registered yet. Add a local folder to this dashboard to get started.",
@@ -30,6 +29,22 @@ export class LocalApiSnapshotSource implements SnapshotSource {
       );
     const savedId = window.localStorage.getItem("modernizer:last-project");
     const project = projects.find((item) => item.id === savedId) ?? projects[0]!;
+    return this.#loadLatestSnapshot(project);
+  }
+
+  async listProjects(): Promise<ProjectSummary[]> {
+    return this.#request<ProjectSummary[]>("/projects");
+  }
+
+  async selectProject(projectId: string): Promise<Snapshot> {
+    const projects = await this.listProjects();
+    const project = projects.find((item) => item.id === projectId);
+    if (!project)
+      throw new LocalApiError("The selected project is no longer registered.", "NOT_FOUND");
+    return this.#loadLatestSnapshot(project);
+  }
+
+  async #loadLatestSnapshot(project: ProjectSummary): Promise<Snapshot> {
     this.#projectId = project.id;
     window.localStorage.setItem("modernizer:last-project", project.id);
     const page = await this.#request<Array<{ id: string }>>(
@@ -43,8 +58,8 @@ export class LocalApiSnapshotSource implements SnapshotSource {
     return this.#loadSnapshot(page[0]!.id);
   }
 
-  async registerProject(input: { rootPath: string; name?: string }): Promise<Project> {
-    const project = await this.#request<Project>("/projects", {
+  async registerProject(input: { rootPath: string; name?: string }): Promise<ProjectSummary> {
+    const project = await this.#request<ProjectSummary>("/projects", {
       method: "POST",
       body: JSON.stringify(input),
     });

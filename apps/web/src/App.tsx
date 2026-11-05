@@ -24,11 +24,11 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
-import { demoSnapshotSource, type SnapshotSource } from "./snapshotSource.js";
+import { demoSnapshotSource, type ProjectSummary, type SnapshotSource } from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
 import {
   filterDocumentationComponents,
@@ -93,6 +93,25 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
     setRetry((value) => value + 1);
   };
 
+  const selectProject = async (projectId: string) => {
+    if (!snapshotSource.selectProject) return;
+    setScanNotice("");
+    setSnapshotState({ status: "loading" });
+    try {
+      setSnapshotState({
+        status: "ready",
+        snapshot: await snapshotSource.selectProject(projectId),
+      });
+    } catch (error) {
+      setSnapshotState({
+        status: "error",
+        message:
+          error instanceof Error ? error.message : "The selected project could not be loaded.",
+        code: error instanceof LocalApiError ? error.code : "PROJECT_LOAD_FAILED",
+      });
+    }
+  };
+
   useEffect(() => {
     let active = true;
     setSnapshotState({ status: "loading" });
@@ -155,6 +174,8 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
       snapshot={snapshot}
       snapshotSource={snapshotSource}
       scanNotice={scanNotice}
+      onDismissScanNotice={() => setScanNotice("")}
+      onSelectProject={(projectId) => void selectProject(projectId)}
       onOpenAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
       addProjectOpen={addProjectOpen}
       onCloseAddProject={() => setAddProjectOpen(false)}
@@ -183,6 +204,8 @@ function LoadedDashboard({
   snapshot,
   snapshotSource,
   scanNotice,
+  onDismissScanNotice,
+  onSelectProject,
   onScan,
   onOpenAddProject,
   addProjectOpen,
@@ -192,6 +215,8 @@ function LoadedDashboard({
   snapshot: Snapshot;
   snapshotSource: SnapshotSource;
   scanNotice: string;
+  onDismissScanNotice: () => void;
+  onSelectProject: (projectId: string) => void;
   onScan: () => void;
   onOpenAddProject?: (() => void) | undefined;
   addProjectOpen: boolean;
@@ -261,16 +286,11 @@ function LoadedDashboard({
           <span className="brand-build">v0.1</span>
         </a>
 
-        <div className="workspace-switcher">
-          <div className="workspace-avatar" aria-hidden="true">
-            S
-          </div>
-          <div className="workspace-meta">
-            <span className="workspace-name">{snapshot.projectId}</span>
-            <span className="workspace-kind">Assessment workspace</span>
-          </div>
-          <ChevronDown size={15} aria-hidden="true" />
-        </div>
+        <WorkspaceSwitcher
+          snapshot={snapshot}
+          source={snapshotSource}
+          onSelectProject={onSelectProject}
+        />
 
         <div className="nav-group-label">WORKSPACE</div>
         <nav className="primary-nav" aria-label="Workspace">
@@ -379,9 +399,11 @@ function LoadedDashboard({
 
         <div className="content-scroll">
           {scanNotice && (
-            <p className="action-notice" role="status">
-              {scanNotice}
-            </p>
+            <DismissibleNotice
+              message={scanNotice}
+              dismissLabel="Dismiss scan notification"
+              onDismiss={onDismissScanNotice}
+            />
           )}
           <div className="page-heading">
             <div>
@@ -717,6 +739,159 @@ function LoadedDashboard({
   );
 }
 
+function DismissibleNotice({
+  message,
+  dismissLabel,
+  onDismiss,
+}: {
+  message: string;
+  dismissLabel: string;
+  onDismiss: () => void;
+}) {
+  return (
+    <div className="action-notice" role="status" aria-live="polite" aria-atomic="true">
+      <span className="action-notice-message">{message}</span>
+      <button
+        className="notice-dismiss"
+        type="button"
+        aria-label={dismissLabel}
+        title={dismissLabel}
+        onClick={onDismiss}
+      >
+        <X size={16} aria-hidden="true" />
+      </button>
+    </div>
+  );
+}
+
+function WorkspaceSwitcher({
+  snapshot,
+  source,
+  onSelectProject,
+}: {
+  snapshot: Snapshot;
+  source: SnapshotSource;
+  onSelectProject: (projectId: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const canSwitchProjects = !snapshot.demo && Boolean(source.listProjects && source.selectProject);
+  const activeProject = projects.find((project) => project.id === snapshot.projectId);
+  const projectName = activeProject?.name ?? snapshot.projectId;
+
+  const refreshProjects = async () => {
+    if (!source.listProjects) return;
+    setLoading(true);
+    setError("");
+    try {
+      setProjects(await source.listProjects());
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not load local projects.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!canSwitchProjects) {
+    return (
+      <div className="workspace-switcher workspace-switcher-static" aria-label="Demo workspace">
+        <div className="workspace-avatar" aria-hidden="true">
+          D
+        </div>
+        <div className="workspace-meta">
+          <span className="workspace-name">Synthetic example</span>
+          <span className="workspace-kind">Project switching is unavailable in demo mode</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="workspace-picker"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false);
+          triggerRef.current?.focus();
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        className="workspace-switcher"
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Current project: ${projectName}. Switch project`}
+        onClick={() => {
+          const shouldOpen = !open;
+          setOpen(shouldOpen);
+          if (shouldOpen) void refreshProjects();
+        }}
+      >
+        <span className="workspace-avatar" aria-hidden="true">
+          {projectName.charAt(0).toUpperCase() || "S"}
+        </span>
+        <span className="workspace-meta">
+          <span className="workspace-name">{projectName}</span>
+          <span className="workspace-kind">Switch project</span>
+        </span>
+        <ChevronDown size={15} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="workspace-menu" role="menu" aria-label="Switch project">
+          {loading ? (
+            <span className="workspace-menu-status" role="status">
+              Loading projects…
+            </span>
+          ) : error ? (
+            <div className="workspace-menu-error" role="status">
+              <span>{error}</span>
+              <button
+                className="workspace-menu-retry"
+                type="button"
+                onClick={() => void refreshProjects()}
+              >
+                Retry
+              </button>
+            </div>
+          ) : projects.length === 0 ? (
+            <span className="workspace-menu-status" role="status">
+              No registered projects are available.
+            </span>
+          ) : (
+            projects.map((project) => {
+              const selected = project.id === snapshot.projectId;
+              return (
+                <button
+                  className={`workspace-option ${selected ? "selected" : ""}`}
+                  key={project.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={selected}
+                  onClick={() => {
+                    setOpen(false);
+                    if (!selected) onSelectProject(project.id);
+                  }}
+                >
+                  <span className="workspace-option-copy">
+                    <span className="workspace-option-name">{project.name}</span>
+                    <span className="workspace-option-id">{project.id}</span>
+                  </span>
+                  {selected && <Check size={15} aria-hidden="true" />}
+                </button>
+              );
+            })
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AddProjectDialog({
   onClose,
   onRegister,
@@ -985,9 +1160,11 @@ function AssessmentView({
           {downloads}
         </div>
         {notice && (
-          <p className="action-notice" role="status">
-            {notice}
-          </p>
+          <DismissibleNotice
+            message={notice}
+            dismissLabel="Dismiss suggestion notification"
+            onDismiss={() => setNotice("")}
+          />
         )}
         <div className="suggestion-filter-toolbar">
           <div className="suggestion-filters" role="group" aria-label="Filter suggestions by type">
@@ -1385,9 +1562,11 @@ function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: Snap
         </div>
       )}
       {error && (
-        <p className="action-notice" role="status">
-          {error}
-        </p>
+        <DismissibleNotice
+          message={error}
+          dismissLabel="Dismiss comparison notification"
+          onDismiss={() => setError("")}
+        />
       )}
       {!snapshot.demo && choices.length === 0 && (
         <div className="empty-state compact-empty">
