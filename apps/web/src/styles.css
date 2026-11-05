@@ -70,6 +70,8 @@ button:disabled {
 .sidebar {
   display: flex;
   flex: 0 0 248px;
+  width: 248px;
+  min-width: 248px;
   flex-direction: column;
   min-height: 100vh;
   padding: 23px 15px 14px;
@@ -137,10 +139,15 @@ button:disabled {
 .workspace-picker {
   position: relative;
   z-index: 8;
+  width: 100%;
+  min-width: 0;
   margin: 0 0 27px;
 }
 .workspace-picker .workspace-switcher {
+  box-sizing: border-box;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   margin: 0;
   color: inherit;
   font: inherit;
@@ -256,6 +263,7 @@ button:disabled {
   min-width: 0;
   flex: 1;
   flex-direction: column;
+  overflow: hidden;
   gap: 3px;
 }
 .workspace-name {
@@ -2236,6 +2244,8 @@ button:disabled {
 @media (max-width: 950px) {
   .sidebar {
     flex-basis: 68px;
+    width: 68px;
+    min-width: 68px;
     align-items: center;
     padding: 17px 8px 10px;
   }
@@ -2267,6 +2277,9 @@ button:disabled {
   }
   .workspace-picker .workspace-switcher {
     width: 43px;
+    min-width: 43px;
+    max-width: 43px;
+    flex: 0 0 43px;
     padding: 5px;
     border: 0;
     background: transparent;

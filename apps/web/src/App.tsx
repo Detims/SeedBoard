@@ -24,7 +24,7 @@ import {
   Workflow,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
@@ -774,26 +774,42 @@ function WorkspaceSwitcher({
   onSelectProject: (projectId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const [projects, setProjects] = useState<ProjectSummary[]>(() => {
+    const selected = source.getSelectedProject?.();
+    return selected ? [selected] : [];
+  });
+  const [projectsLoaded, setProjectsLoaded] = useState(() =>
+    Boolean(source.getSelectedProject?.()),
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const canSwitchProjects = !snapshot.demo && Boolean(source.listProjects && source.selectProject);
-  const activeProject = projects.find((project) => project.id === snapshot.projectId);
-  const projectName = activeProject?.name ?? snapshot.projectId;
+  const selectedProject = source.getSelectedProject?.();
+  const activeProject =
+    projects.find((project) => project.id === snapshot.projectId) ??
+    (selectedProject?.id === snapshot.projectId ? selectedProject : undefined);
+  const projectName =
+    activeProject?.name ?? (projectsLoaded ? snapshot.projectId : "Loading project…");
 
-  const refreshProjects = async () => {
+  const refreshProjects = useCallback(async () => {
     if (!source.listProjects) return;
     setLoading(true);
     setError("");
     try {
       setProjects(await source.listProjects());
+      setProjectsLoaded(true);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load local projects.");
+      setProjectsLoaded(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, [source]);
+
+  useEffect(() => {
+    void refreshProjects();
+  }, [refreshProjects]);
 
   if (!canSwitchProjects) {
     return (

@@ -6,6 +6,7 @@ export type ProjectSummary = { id: string; name: string; createdAt: string };
 export interface SnapshotSource {
   loadSnapshot(): Promise<Snapshot>;
   listProjects?(): Promise<ProjectSummary[]>;
+  getSelectedProject?(): ProjectSummary | null;
   selectProject?(projectId: string): Promise<Snapshot>;
   registerProject?(input: { rootPath: string; name?: string }): Promise<{
     id: string;

@@ -18,6 +18,11 @@ export class LocalApiSnapshotSource implements SnapshotSource {
   readonly mode = "local" as const;
   #csrf: { header: string; value: string } | null = null;
   #projectId: string | null = null;
+  #selectedProject: ProjectSummary | null = null;
+
+  getSelectedProject(): ProjectSummary | null {
+    return this.#selectedProject;
+  }
 
   async loadSnapshot(): Promise<Snapshot> {
     await this.#bootstrap();
@@ -46,6 +51,7 @@ export class LocalApiSnapshotSource implements SnapshotSource {
 
   async #loadLatestSnapshot(project: ProjectSummary): Promise<Snapshot> {
     this.#projectId = project.id;
+    this.#selectedProject = project;
     window.localStorage.setItem("modernizer:last-project", project.id);
     const page = await this.#request<Array<{ id: string }>>(
       `/projects/${encodeURIComponent(project.id)}/snapshots?limit=1`,
@@ -64,6 +70,7 @@ export class LocalApiSnapshotSource implements SnapshotSource {
       body: JSON.stringify(input),
     });
     this.#projectId = project.id;
+    this.#selectedProject = project;
     window.localStorage.setItem("modernizer:last-project", project.id);
     return project;
   }
