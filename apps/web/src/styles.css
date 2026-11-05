@@ -28,8 +28,10 @@
 }
 body {
   min-width: 320px;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   margin: 0;
+  overflow: hidden;
 }
 button,
 input,
@@ -65,7 +67,11 @@ button:disabled {
 
 .app-shell {
   display: flex;
-  min-height: 100vh;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 .sidebar {
   display: flex;
@@ -73,7 +79,9 @@ button:disabled {
   width: 248px;
   min-width: 248px;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
   padding: 23px 15px 14px;
   color: #d6dfeb;
   background: var(--navy);
@@ -132,9 +140,10 @@ button:disabled {
   gap: 10px;
   margin: 0 0 27px;
   padding: 10px 9px;
-  border: 1px solid #2b3747;
+  border: 1px solid #e1e8e1;
   border-radius: 9px;
-  background: #192535;
+  color: #344458;
+  background: #fff;
 }
 .workspace-picker {
   position: relative;
@@ -149,14 +158,14 @@ button:disabled {
   min-width: 0;
   max-width: 100%;
   margin: 0;
-  color: inherit;
+  color: #344458;
   font: inherit;
   text-align: left;
   cursor: pointer;
 }
 .workspace-picker .workspace-switcher:hover {
-  border-color: #435264;
-  background: #1d2b3b;
+  border-color: #a9cbb1;
+  background: #edf6ef;
 }
 .workspace-picker .workspace-switcher:focus-visible {
   outline: 3px solid rgba(131, 206, 145, 0.7);
@@ -176,10 +185,11 @@ button:disabled {
   max-height: min(360px, 60vh);
   overflow-y: auto;
   padding: 6px;
-  border: 1px solid #344456;
+  border: 1px solid #dce4e1;
   border-radius: 9px;
-  background: #172332;
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+  color: #344458;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(20, 36, 56, 0.17);
 }
 .workspace-option {
   display: flex;
@@ -191,14 +201,14 @@ button:disabled {
   padding: 8px;
   border: 1px solid transparent;
   border-radius: 6px;
-  color: #cfdae7;
+  color: #344458;
   background: transparent;
   text-align: left;
 }
 .workspace-option:hover,
 .workspace-option.selected {
-  border-color: #344b3e;
-  background: #20352b;
+  border-color: #c9ddce;
+  background: #edf6ef;
 }
 .workspace-option-copy {
   display: grid;
@@ -212,35 +222,35 @@ button:disabled {
   white-space: nowrap;
 }
 .workspace-option-name {
-  color: #f0f5f0;
+  color: #29394b;
   font-size: 12px;
   font-weight: 600;
 }
 .workspace-option-id {
-  color: #91a0b0;
+  color: #738195;
   font-size: 10px;
 }
 .workspace-option > svg {
   flex: 0 0 auto;
-  color: #9be0a1;
+  color: #398457;
 }
 .workspace-menu-status,
 .workspace-menu-error {
   padding: 9px 8px;
-  color: #acb8c5;
+  color: #657387;
   font-size: 11px;
   line-height: 1.5;
 }
 .workspace-menu-error {
   display: grid;
   gap: 7px;
-  color: #e0b5a6;
+  color: #a4493d;
 }
 .workspace-menu-retry {
   justify-self: start;
   padding: 3px 0;
   border: 0;
-  color: #b5dcb8;
+  color: #28724d;
   background: transparent;
   font: inherit;
   text-decoration: underline;
@@ -268,18 +278,18 @@ button:disabled {
 }
 .workspace-name {
   overflow: hidden;
-  color: #f0f3f8;
+  color: #29394b;
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .workspace-kind {
-  color: #8d9aac;
+  color: #718094;
   font-size: 11px;
 }
 .workspace-switcher > svg {
-  color: #8f9bad;
+  color: #718094;
 }
 .nav-group-label {
   margin: 0 10px 8px;
@@ -360,20 +370,21 @@ button:disabled {
 }
 .coverage-card {
   padding: 13px 12px 11px;
-  border: 1px solid #2a3748;
+  border: 1px solid #e1e8e1;
   border-radius: 9px;
-  background: #172332;
+  color: #344458;
+  background: #fff;
 }
 .coverage-title {
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #b9c4d3;
+  color: #344458;
   font-size: 12px;
   font-weight: 600;
 }
 .coverage-title svg {
-  color: #87c99a;
+  color: #398457;
 }
 .coverage-score {
   display: flex;
@@ -382,21 +393,21 @@ button:disabled {
   margin: 12px 0 9px;
 }
 .coverage-score > span:first-child {
-  color: #f1f4fa;
+  color: #203047;
   font:
     700 22px Manrope,
     sans-serif;
   letter-spacing: -0.6px;
 }
 .coverage-total {
-  color: #8e9caf;
+  color: #718094;
   font-size: 11px;
 }
 .coverage-track {
   height: 4px;
   overflow: hidden;
   border-radius: 9px;
-  background: #344254;
+  background: #e5ebe8;
 }
 .coverage-track span {
   display: block;
@@ -406,7 +417,7 @@ button:disabled {
 }
 .coverage-card p {
   margin: 8px 0 0;
-  color: #94a1b2;
+  color: #718094;
   font-size: 11px;
   line-height: 1.5;
 }
@@ -520,7 +531,9 @@ button:disabled {
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  height: 100vh;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 .topbar {
   position: sticky;
@@ -642,7 +655,10 @@ button:disabled {
   width: 100%;
   max-width: 1630px;
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
   margin: 0 auto;
   padding: 27px 34px 16px;
 }
@@ -3420,8 +3436,7 @@ html[data-theme="dark"]
     .empty-state,
     .details-empty,
     .table-wrap,
-    .workspace-menu,
-    .snapshot-value
+    .workspace-menu
   ) {
   border-color: #303d49;
   color: #e7edf4;
@@ -3596,4 +3611,147 @@ html[data-theme="dark"] :is(.status-pill.unknown, .docs-pill.partial, .observati
 }
 html[data-theme="dark"] :is(input, select, button, a):focus-visible {
   outline-color: #86d49a;
+}
+
+html[data-theme="dark"] .workspace-picker .workspace-switcher {
+  border-color: #2b3747;
+  color: #d6dfeb;
+  background: #192535;
+}
+html[data-theme="dark"] .workspace-picker .workspace-switcher:hover {
+  border-color: #637586;
+  color: #f4f7fb;
+  background: #2a3a49;
+}
+html[data-theme="dark"] .workspace-switcher-static {
+  border-color: #2b3747;
+  color: #d6dfeb;
+  background: #192535;
+}
+html[data-theme="dark"] .workspace-name {
+  color: #f0f3f8;
+}
+html[data-theme="dark"] .workspace-kind,
+html[data-theme="dark"] .workspace-switcher > svg {
+  color: #aebaca;
+}
+html[data-theme="dark"] :is(.workspace-menu, .snapshot-menu, .account-menu) {
+  border-color: #344456;
+  color: #cfdae7;
+  background: #172332;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+html[data-theme="dark"] .workspace-option,
+html[data-theme="dark"] .snapshot-option,
+html[data-theme="dark"] .account-menu > button {
+  color: #d7e0e9;
+}
+html[data-theme="dark"] :is(.workspace-option:hover, .snapshot-option:hover) {
+  border-color: #465747;
+  background: #293c31;
+}
+html[data-theme="dark"] :is(.workspace-option.selected, .snapshot-option.selected) {
+  border-color: #385240;
+  color: #e8f3e9;
+  background: #20352b;
+}
+html[data-theme="dark"] .workspace-option-name,
+html[data-theme="dark"] .snapshot-option-name,
+html[data-theme="dark"] .account-menu-status strong {
+  color: #f0f5f0;
+}
+html[data-theme="dark"]
+  :is(.workspace-option-id, .snapshot-option-meta, .account-menu-status span) {
+  color: #aebaca;
+}
+html[data-theme="dark"] :is(.workspace-option > svg, .snapshot-option > svg) {
+  color: #9be0a1;
+}
+html[data-theme="dark"] .account-menu-status {
+  border-color: #344456;
+}
+html[data-theme="dark"] .account-menu > button:hover {
+  border-color: #465747;
+  background: #293c31;
+}
+html[data-theme="dark"] .workspace-menu-status {
+  color: #acb8c5;
+}
+html[data-theme="dark"] .workspace-menu-error {
+  color: #e0b5a6;
+}
+html[data-theme="dark"] .workspace-menu-retry {
+  color: #b5dcb8;
+}
+html[data-theme="dark"] .coverage-card {
+  border-color: #2a3748;
+  color: #dce5ed;
+  background: #172332;
+}
+html[data-theme="dark"] .coverage-title {
+  color: #b9c4d3;
+}
+html[data-theme="dark"] .coverage-title svg {
+  color: #87c99a;
+}
+html[data-theme="dark"] .coverage-score > span:first-child {
+  color: #f1f4fa;
+}
+html[data-theme="dark"] .coverage-total,
+html[data-theme="dark"] .coverage-card p {
+  color: #aebaca;
+}
+html[data-theme="dark"] .coverage-track {
+  background: #344254;
+}
+html[data-theme="dark"] .snapshot-select:hover:not(:disabled) {
+  border-color: #617484;
+  color: #f4f7fb;
+  background: #2c3b48;
+}
+html[data-theme="dark"] .snapshot-label {
+  color: #aebaca;
+}
+html[data-theme="dark"] .snapshot-value {
+  color: #e7edf4;
+  background: transparent;
+}
+html[data-theme="dark"] .snapshot-value svg {
+  color: #c2cbd4;
+}
+
+@media (max-height: 760px) {
+  .sidebar {
+    padding-top: 12px;
+    padding-bottom: 8px;
+  }
+  .brand {
+    margin-bottom: 14px;
+  }
+  .second-label {
+    margin-top: 14px;
+  }
+  .sidebar-spacer {
+    min-height: 6px;
+  }
+  .coverage-card {
+    display: none;
+  }
+  .sidebar > .workspace-picker {
+    margin-bottom: 7px;
+  }
+  .profile-button {
+    margin-top: 7px;
+  }
+}
+@media (max-width: 950px) {
+  .sidebar {
+    overflow: visible;
+  }
+  .sidebar > .workspace-picker .workspace-menu {
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: calc(100% + 8px);
+  }
 }

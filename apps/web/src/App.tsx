@@ -415,11 +415,37 @@ function LoadedDashboard({
           </div>
           <p>{counts.undocumented} components need a documentation review.</p>
         </div>
-        <button className="profile-button">
-          <span className="profile-avatar">JD</span>
-          <span className="profile-name">Local workspace</span>
-          <Settings2 size={16} aria-hidden="true" />
-        </button>
+        <div className="account-menu-wrap">
+          <button
+            className="profile-button"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={accountOpen}
+            onClick={() => setAccountOpen((open) => !open)}
+          >
+            <span className="profile-avatar">L</span>
+            <span className="profile-name">Local access</span>
+            <Settings2 size={16} aria-hidden="true" />
+          </button>
+          {accountOpen && (
+            <div className="account-menu" role="menu" aria-label="Local account">
+              <div className="account-menu-status">
+                <strong>Local access</strong>
+                <span>No account is connected</span>
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setAccountOpen(false);
+                  setSettingsOpen(true);
+                }}
+              >
+                <Settings2 size={14} aria-hidden="true" /> Settings
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       <main className="main-area">
