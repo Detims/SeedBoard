@@ -1,13 +1,15 @@
-import { readFile } from "node:fs/promises";
-import { mkdtemp, rm } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { promisify } from "node:util";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { Snapshot } from "@modernizer/contracts";
 import { buildApp } from "../src/app.js";
 import { ModernizerStore, type RegisteredProject } from "../src/storage.js";
 import type { ScanRunner } from "../src/scanQueue.js";
+import { captureRepositoryRevision } from "../src/repositoryChanges.js";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const demoSnapshot = JSON.parse(
@@ -15,6 +17,7 @@ const demoSnapshot = JSON.parse(
 ) as Snapshot;
 const origin = "http://127.0.0.1:4317";
 const host = "127.0.0.1:4317";
+const execFileAsync = promisify(execFile);
 
 let store: ModernizerStore;
 let project: RegisteredProject;
@@ -45,6 +48,14 @@ async function waitForTerminal(jobId: string) {
 
 beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "modernizer-api-target-"));
+  await git(root, ["init", "-q", "--initial-branch=main"]);
+  await git(root, ["config", "user.name", "SeedBoard Test"]);
+  await git(root, ["config", "user.email", "seedboard-test@example.invalid"]);
+  await writeFile(join(root, "README.md"), "scan baseline\n");
+  await git(root, ["add", "--", "README.md"]);
+  await git(root, ["commit", "-qm", "scan baseline"]);
+  const sourceRevision = await captureRepositoryRevision(root);
+  if (!sourceRevision) throw new Error("Test repository did not produce a commit.");
   store = new ModernizerStore({ databasePath: ":memory:" });
   project = await store.registerProject({ rootPath: root, name: "Synthetic target" });
   const scanner: ScanRunner = async (registered) => ({
@@ -52,10 +63,18 @@ beforeEach(async () => {
       ...structuredClone(demoSnapshot),
       id: `snapshot-${registered.id.slice(-12)}`,
       projectId: registered.id,
+      sourceRevision,
       demo: false,
     },
   });
-  app = buildApp({ store, scanner, secureCookies: false });
+  app = buildApp({
+    store,
+    scanner,
+    secureCookies: false,
+    advisoryFetch: async () => {
+      throw new Error("No public metadata lookup should run for the synthetic fixture.");
+    },
+  });
   const session = await app.inject({
     method: "GET",
     url: "/api/v1/session",
@@ -64,6 +83,10 @@ beforeEach(async () => {
   expect(session.statusCode).toBe(200);
   cookie = String(session.headers["set-cookie"]).split(";", 1)[0]!;
 });
+
+function git(root: string, args: string[]) {
+  return execFileAsync("git", args, { cwd: root, windowsHide: true });
+}
 
 afterEach(async () => {
   await app.close();
@@ -246,6 +269,58 @@ describe("local snapshot and decision APIs", () => {
     expect(appendix.headers["content-type"]).toContain("text/markdown");
     expect(appendix.body.toLowerCase()).toContain("documentation appendix");
     expect(appendix.body).not.toContain(root);
+  });
+
+  it("requires explicit consent before checking external package metadata", async () => {
+    const snapshotId = await runScan();
+    const rejected = await app.inject({
+      method: "POST",
+      url: `/api/v1/snapshots/${snapshotId}/package-advisories`,
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { shareMetadata: false },
+    });
+    expect(rejected.statusCode).toBe(400);
+
+    const accepted = await app.inject({
+      method: "POST",
+      url: `/api/v1/snapshots/${snapshotId}/package-advisories`,
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { shareMetadata: true },
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(accepted.json().data.checkedAt).toBeTruthy();
+    expect(accepted.json().data.packages).toEqual([]);
+  });
+
+  it("shows tracked worktree changes and restores selected files after confirmation", async () => {
+    const snapshotId = await runScan();
+    await writeFile(join(root, "README.md"), "working changes\n");
+    const preview = await app.inject({
+      method: "GET",
+      url: `/api/v1/snapshots/${snapshotId}/repository-changes`,
+      headers: authHeaders(),
+    });
+
+    expect(preview.statusCode).toBe(200);
+    expect(preview.json().data.files).toEqual([
+      { path: "README.md", status: "M", restorable: true },
+    ]);
+    const changes = preview.json().data;
+    const restored = await app.inject({
+      method: "POST",
+      url: `/api/v1/projects/${project.id}/restore-files`,
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: {
+        snapshotId,
+        currentRevision: changes.currentRevision,
+        changeToken: changes.changeToken,
+        paths: ["README.md"],
+      },
+    });
+
+    expect(restored.statusCode).toBe(200);
+    expect(restored.json().data.restoredPaths).toEqual(["README.md"]);
+    expect(await readFile(join(root, "README.md"), "utf8")).toBe("scan baseline\n");
   });
 
   it("saves bounded graph layouts and human decisions without applying findings", async () => {

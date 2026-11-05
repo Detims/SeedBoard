@@ -16,20 +16,45 @@ import {
   GitBranch,
   LayoutDashboard,
   ListFilter,
+  Moon,
   Plus,
   Search,
   Settings2,
   ShieldCheck,
   Sparkles,
+  Sun,
   Workflow,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
+import { PackageAdvisories } from "./components/PackageAdvisories.js";
+import { QualityCoverage } from "./components/QualityCoverage.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
-import { demoSnapshotSource, type ProjectSummary, type SnapshotSource } from "./snapshotSource.js";
+import {
+  demoSnapshotSource,
+  type ProjectSummary,
+  type RepositoryChanges,
+  type SnapshotSource,
+} from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
+import {
+  applyTheme,
+  getInitialTheme,
+  getSavedThemePreference,
+  getSystemTheme,
+  saveTheme,
+  type Theme,
+} from "./theme.js";
 import {
   filterDocumentationComponents,
   filterSuggestionsByCategory,
@@ -51,6 +76,7 @@ type Page =
   | "inventory"
   | "suggestions"
   | "environments"
+  | "quality"
   | "data"
   | "documentation"
   | "comparison";
@@ -62,6 +88,7 @@ const navigation: NavItem[] = [
   { id: "inventory", label: "Component inventory", icon: Boxes },
   { id: "suggestions", label: "Suggestions", icon: Sparkles },
   { id: "environments", label: "Environments & CI", icon: GitBranch },
+  { id: "quality", label: "Coverage & risks", icon: Activity },
   { id: "data", label: "Data & migrations", icon: Database },
   { id: "documentation", label: "Documentation", icon: BookOpen },
   { id: "comparison", label: "Snapshot comparison", icon: GitBranch },
@@ -223,6 +250,9 @@ function LoadedDashboard({
   onCloseAddProject: () => void;
   onRegisterProject: (input: { rootPath: string; name?: string }) => Promise<void>;
 }) {
+  const [themePreference, setThemePreference] = useState<Theme | null>(getSavedThemePreference);
+  const [systemTheme, setSystemTheme] = useState<Theme>(getSystemTheme);
+  const theme = themePreference ?? systemTheme;
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
   const [layer, setLayer] = useState<LayerFilter>("all");
@@ -245,6 +275,23 @@ function LoadedDashboard({
   const selected = snapshot.components.find((component) => component.id === selectedId) ?? null;
   const counts = getInventoryCounts(snapshot, filtered.length);
   const layoutKey = `modernizer:v1:${snapshot.projectId}:${snapshot.id}`;
+
+  useLayoutEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    try {
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
+      const updateSystemTheme = (event: MediaQueryListEvent) => {
+        setSystemTheme(event.matches ? "dark" : "light");
+      };
+      media.addEventListener("change", updateSystemTheme);
+      return () => media.removeEventListener("change", updateSystemTheme);
+    } catch {
+      return undefined;
+    }
+  }, []);
 
   useEffect(() => {
     browserLayoutStore.save(layoutKey, positions);
@@ -350,6 +397,25 @@ function LoadedDashboard({
           </div>
           <p>{counts.undocumented} components need a documentation review.</p>
         </div>
+        <button
+          className="theme-toggle"
+          type="button"
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          aria-pressed={theme === "dark"}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          onClick={() => {
+            const nextTheme = theme === "dark" ? "light" : "dark";
+            saveTheme(nextTheme);
+            setThemePreference(nextTheme);
+          }}
+        >
+          {theme === "dark" ? (
+            <Sun size={16} aria-hidden="true" />
+          ) : (
+            <Moon size={16} aria-hidden="true" />
+          )}
+          <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        </button>
         <button className="profile-button">
           <span className="profile-avatar">JD</span>
           <span className="profile-name">Local workspace</span>
@@ -422,11 +488,13 @@ function LoadedDashboard({
                         ? "Review evidence-backed modernization suggestions before making any changes."
                         : page === "environments"
                           ? "Inspect declared environments, test gates, workflows, and known unknowns."
-                          : page === "data"
-                            ? "Review database components and migration files without implying applied state."
-                            : page === "documentation"
-                              ? "Review official references, internal guides, and explicit documentation gaps."
-                              : "Compare immutable snapshots to see added, removed, and changed objects."}
+                          : page === "quality"
+                            ? "Review test and deployment mappings, plus components that need closer attention."
+                            : page === "data"
+                              ? "Review database components and migration files without implying applied state."
+                              : page === "documentation"
+                                ? "Review official references, internal guides, and explicit documentation gaps."
+                                : "Compare immutable snapshots to see added, removed, and changed objects."}
               </p>
             </div>
             <div className="snapshot-select">
@@ -505,6 +573,7 @@ function LoadedDashboard({
             <InventoryView
               components={filtered}
               snapshot={snapshot}
+              source={snapshotSource}
               selectedId={selectedId}
               onSelect={setSelectedId}
               layer={layer}
@@ -637,6 +706,14 @@ function LoadedDashboard({
                 )}
               </div>
             </section>
+          ) : page === "quality" ? (
+            <QualityCoverage
+              snapshot={snapshot}
+              onInspectComponent={(componentId) => {
+                setSelectedId(componentId);
+                setPage("inventory");
+              }}
+            />
           ) : (
             <AssessmentView page={page} snapshot={snapshot} source={snapshotSource} />
           )}
@@ -1085,6 +1162,7 @@ function pageTitle(page: Page): string {
     inventory: "Component inventory",
     suggestions: "Suggestions",
     environments: "Environments & CI",
+    quality: "Coverage & risks",
     data: "Data & migrations",
     documentation: "Documentation",
     comparison: "Snapshot comparison",
@@ -1515,6 +1593,10 @@ function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: Snap
     changed: Array<{ id: string; fields: string[] }>;
   } | null>(null);
   const [error, setError] = useState("");
+  const [repositoryChanges, setRepositoryChanges] = useState<RepositoryChanges | null>(null);
+  const [selectedPaths, setSelectedPaths] = useState<string[]>([]);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreMessage, setRestoreMessage] = useState("");
   useEffect(() => {
     let active = true;
     source
@@ -1526,10 +1608,28 @@ function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: Snap
         if (active)
           setError(cause instanceof Error ? cause.message : "Snapshot history is unavailable.");
       });
+    source
+      .getRepositoryChanges?.(snapshot.id)
+      .then((changes) => {
+        if (!active) return;
+        setRepositoryChanges(changes);
+        setSelectedPaths([]);
+      })
+      .catch((cause: unknown) => {
+        if (active)
+          setRepositoryChanges({
+            available: false,
+            reason: cause instanceof Error ? cause.message : "Repository changes are unavailable.",
+            sourceRevision: snapshot.sourceRevision,
+            currentRevision: null,
+            changeToken: null,
+            files: [],
+          });
+      });
     return () => {
       active = false;
     };
-  }, [snapshot.projectId, source]);
+  }, [snapshot.id, snapshot.projectId, snapshot.sourceRevision, source]);
   const choices = history.filter((item) => item.id !== snapshot.id);
   const compare = async () => {
     try {
@@ -1540,8 +1640,116 @@ function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: Snap
       setError(cause instanceof Error ? cause.message : "Snapshot comparison failed.");
     }
   };
+  const restoreFiles = async () => {
+    if (
+      !source.restoreProjectFiles ||
+      !repositoryChanges?.currentRevision ||
+      !repositoryChanges.changeToken ||
+      selectedPaths.length === 0
+    ) {
+      return;
+    }
+    const confirmed = window.confirm(
+      `Restore ${selectedPaths.length} selected tracked file(s) to the Git commit recorded by this scan? Their current contents will be overwritten. SeedBoard does not keep a backup of the current contents. Untracked files are not included.`,
+    );
+    if (!confirmed) return;
+    setRestoring(true);
+    setError("");
+    setRestoreMessage("");
+    try {
+      const result = await source.restoreProjectFiles(
+        snapshot.projectId,
+        snapshot.id,
+        repositoryChanges,
+        selectedPaths,
+      );
+      setRepositoryChanges(result.changes);
+      setSelectedPaths([]);
+      setRestoreMessage(
+        `Restored ${result.restoredPaths.length} file(s) to the revision recorded by this scan.`,
+      );
+    } catch (cause) {
+      setError(
+        cause instanceof Error ? cause.message : "The selected files could not be restored.",
+      );
+      if (cause instanceof Error && cause.message.includes("changed after the preview")) {
+        const refreshed = await source.getRepositoryChanges?.(snapshot.id).catch(() => null);
+        if (refreshed) setRepositoryChanges(refreshed);
+      }
+    } finally {
+      setRestoring(false);
+    }
+  };
   return (
     <section className="assessment-view">
+      <div className="panel-card repository-change-panel">
+        <div className="repository-change-heading">
+          <div>
+            <h2>Project file changes since this scan</h2>
+            <p>Read-only Git comparison against the commit captured when the scan started.</p>
+          </div>
+          {repositoryChanges?.available && repositoryChanges.files.length > 0 && (
+            <button
+              className="soft-button danger-button"
+              disabled={
+                restoring ||
+                selectedPaths.length === 0 ||
+                !source.restoreProjectFiles ||
+                !repositoryChanges.changeToken
+              }
+              onClick={() => void restoreFiles()}
+            >
+              {restoring ? "Restoring…" : `Restore selected (${selectedPaths.length})`}
+            </button>
+          )}
+        </div>
+        {!snapshot.demo && (
+          <p className="restore-safety-note">
+            Restoring overwrites selected tracked files with their contents from the scan commit.
+            Review the paths carefully and keep a separate backup of work you may need. Staged paths
+            are protected, and untracked files are not included.
+          </p>
+        )}
+        {snapshot.demo ? (
+          <p className="muted-copy">
+            Repository file history is available for registered local projects.
+          </p>
+        ) : repositoryChanges === null ? (
+          <span className="muted-copy">Checking the local Git worktree…</span>
+        ) : !repositoryChanges.available ? (
+          <p className="muted-copy">{repositoryChanges.reason}</p>
+        ) : repositoryChanges.files.length === 0 ? (
+          <p className="muted-copy">No tracked file changes since this scan.</p>
+        ) : (
+          <div className="repository-change-list">
+            {repositoryChanges.files.map(({ path, status, restorable }) => (
+              <label className="repository-change-row" key={path}>
+                <input
+                  type="checkbox"
+                  checked={selectedPaths.includes(path)}
+                  disabled={restoring || !source.restoreProjectFiles || !restorable}
+                  onChange={(event) =>
+                    setSelectedPaths((current) =>
+                      event.target.checked
+                        ? [...current, path]
+                        : current.filter((item) => item !== path),
+                    )
+                  }
+                />
+                <span className="repository-change-status">
+                  {restorable ? repositoryStatus(status) : "Staged · protected"}
+                </span>
+                <code>{path}</code>
+              </label>
+            ))}
+          </div>
+        )}
+        {restoreMessage && (
+          <p className="inline-success" role="status">
+            {restoreMessage}
+          </p>
+        )}
+      </div>
       <div className="view-toolbar">
         <div>
           <h2>Compare with an earlier snapshot</h2>
@@ -1631,6 +1839,13 @@ function ComparisonView({ snapshot, source }: { snapshot: Snapshot; source: Snap
   );
 }
 
+function repositoryStatus(status: string): string {
+  if (status.startsWith("A")) return "Added";
+  if (status.startsWith("D")) return "Deleted";
+  if (status.startsWith("T")) return "Type changed";
+  return "Modified";
+}
+
 function MetricCard({
   label,
   value,
@@ -1678,6 +1893,7 @@ function MetricCard({
 function InventoryView({
   components,
   snapshot,
+  source,
   selectedId,
   onSelect,
   layer,
@@ -1686,6 +1902,7 @@ function InventoryView({
 }: {
   components: Component[];
   snapshot: Snapshot;
+  source: SnapshotSource;
   selectedId: string | null;
   onSelect: (id: string) => void;
   layer: LayerFilter;
@@ -1702,6 +1919,7 @@ function InventoryView({
   );
   return (
     <section className="inventory-section panel-card">
+      <PackageAdvisories snapshot={snapshot} source={source} />
       <div className="inventory-toolbar">
         <div>
           <div className="section-title-row">
