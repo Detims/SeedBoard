@@ -49,6 +49,16 @@ export class LocalApiSnapshotSource implements SnapshotSource {
     return this.#loadLatestSnapshot(project);
   }
 
+  async loadSnapshotById(snapshotId: string): Promise<Snapshot> {
+    const projectId = this.#projectId;
+    if (!projectId)
+      throw new LocalApiError("Select a project before choosing a snapshot.", "PROJECTS_EMPTY");
+    const history = await this.listHistory(projectId);
+    if (!history.some((item) => item.id === snapshotId))
+      throw new LocalApiError("The selected snapshot is not part of this project.", "NOT_FOUND");
+    return this.#loadSnapshot(snapshotId);
+  }
+
   async #loadLatestSnapshot(project: ProjectSummary): Promise<Snapshot> {
     this.#projectId = project.id;
     this.#selectedProject = project;

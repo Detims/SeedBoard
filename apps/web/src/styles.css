@@ -441,6 +441,79 @@ button:disabled {
 .profile-button svg {
   color: #8290a1;
 }
+.sidebar > .workspace-picker {
+  margin: 0 0 13px;
+}
+.account-menu-wrap {
+  position: relative;
+  width: 100%;
+}
+.account-menu {
+  position: absolute;
+  z-index: 14;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  display: grid;
+  gap: 5px;
+  padding: 8px;
+  border: 1px solid #344456;
+  border-radius: 9px;
+  color: #cfdae7;
+  background: #172332;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+}
+.account-menu-status {
+  display: grid;
+  gap: 4px;
+  padding: 7px 8px;
+  border-bottom: 1px solid #344456;
+}
+.account-menu-status strong {
+  color: #f0f5f0;
+  font-size: 12px;
+}
+.account-menu-status span {
+  color: #91a0b0;
+  font-size: 11px;
+}
+.account-menu > button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #cfdae7;
+  background: transparent;
+  text-align: left;
+}
+.account-menu > button:hover {
+  border-color: #344b3e;
+  background: #20352b;
+}
+.settings-dialog {
+  display: grid;
+  gap: 20px;
+}
+.settings-list {
+  display: grid;
+  gap: 12px;
+}
+.settings-list > div {
+  display: grid;
+  gap: 4px;
+}
+.settings-list strong {
+  color: #39495d;
+  font-size: 12px;
+}
+.settings-list span {
+  color: #718094;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
 
 .main-area {
   display: flex;
@@ -615,6 +688,7 @@ button:disabled {
 }
 .snapshot-select {
   display: flex;
+  min-width: 230px;
   flex-direction: column;
   gap: 6px;
   padding: 8px 11px;
@@ -632,6 +706,7 @@ button:disabled {
 }
 .snapshot-value {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 7px;
   color: #49586a;
@@ -641,6 +716,25 @@ button:disabled {
 .snapshot-value svg {
   margin-left: 7px;
   color: #97a3af;
+}
+.snapshot-value select {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  border: 0;
+  outline: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  text-overflow: ellipsis;
+}
+.snapshot-value select:disabled {
+  opacity: 1;
+  appearance: none;
+}
+.snapshot-history-error {
+  color: #a85442;
+  font-size: 10px;
 }
 .snapshot-indicator {
   width: 6px;
