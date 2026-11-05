@@ -55,7 +55,14 @@ beforeEach(async () => {
       demo: false,
     },
   });
-  app = buildApp({ store, scanner, secureCookies: false });
+  app = buildApp({
+    store,
+    scanner,
+    secureCookies: false,
+    advisoryFetch: async () => {
+      throw new Error("No public metadata lookup should run for the synthetic fixture.");
+    },
+  });
   const session = await app.inject({
     method: "GET",
     url: "/api/v1/session",
@@ -246,6 +253,27 @@ describe("local snapshot and decision APIs", () => {
     expect(appendix.headers["content-type"]).toContain("text/markdown");
     expect(appendix.body.toLowerCase()).toContain("documentation appendix");
     expect(appendix.body).not.toContain(root);
+  });
+
+  it("requires explicit consent before checking external package metadata", async () => {
+    const snapshotId = await runScan();
+    const rejected = await app.inject({
+      method: "POST",
+      url: `/api/v1/snapshots/${snapshotId}/package-advisories`,
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { shareMetadata: false },
+    });
+    expect(rejected.statusCode).toBe(400);
+
+    const accepted = await app.inject({
+      method: "POST",
+      url: `/api/v1/snapshots/${snapshotId}/package-advisories`,
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: { shareMetadata: true },
+    });
+    expect(accepted.statusCode).toBe(200);
+    expect(accepted.json().data.checkedAt).toBeTruthy();
+    expect(accepted.json().data.packages).toEqual([]);
   });
 
   it("saves bounded graph layouts and human decisions without applying findings", async () => {

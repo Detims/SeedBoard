@@ -29,6 +29,7 @@ describe("OpenAPI contract", () => {
       "GET /projects/{projectId}/snapshots",
       "GET /snapshots/{snapshotId}",
       "GET /snapshots/{snapshotId}/diff",
+      "POST /snapshots/{snapshotId}/package-advisories",
       "GET /projects/{projectId}/layouts/{name}",
       "PUT /projects/{projectId}/layouts/{name}",
       "PUT /projects/{projectId}/suggestion-decisions/{fingerprint}",
@@ -49,6 +50,7 @@ describe("OpenAPI contract", () => {
     expect(document.components.schemas).toHaveProperty("ErrorResponse");
     expect(document.components.schemas).toHaveProperty("SessionBootstrapResponse");
     expect(document.components.schemas).toHaveProperty("DiffResponse");
+    expect(document.components.schemas).toHaveProperty("PackageAdvisoryResponse");
     expect(document.components.schemas).toHaveProperty("LayoutInput");
     expect(document.components.schemas).toHaveProperty("SuggestionDecisionInput");
     expect(JSON.parse(schemaText).$schema).toBe("https://json-schema.org/draft/2020-12/schema");

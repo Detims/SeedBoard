@@ -1,6 +1,32 @@
 import { assertSnapshot, type Snapshot } from "@modernizer/contracts";
 import demoSnapshot from "../../../fixtures/demo.snapshot.json";
 
+export type PackageAdvisoryReport = {
+  checkedAt: string;
+  totalPackages: number;
+  checkedPackages: number;
+  truncated: boolean;
+  sources: Array<{ name: string; url: string; retrievedAt: string; cached: boolean }>;
+  packages: Array<{
+    componentId: string;
+    name: string;
+    installedVersion: string;
+    latestVersion: string | null;
+    status: "current" | "outdated" | "unknown";
+    sourceUrl: string;
+  }>;
+  lifecycles: Array<{
+    componentId: string;
+    name: string;
+    version: string;
+    product: string;
+    cycle: string | null;
+    status: "supported" | "unsupported" | "eol" | "unknown";
+    endOfLife: string | null;
+    sourceUrl: string;
+  }>;
+};
+
 export type ProjectSummary = { id: string; name: string; createdAt: string };
 
 export interface SnapshotSource {
@@ -14,6 +40,7 @@ export interface SnapshotSource {
     createdAt: string;
   }>;
   scanLatest?(): Promise<Snapshot>;
+  checkPackageAdvisories?(snapshotId: string): Promise<PackageAdvisoryReport>;
   saveDecision?(
     projectId: string,
     fingerprint: string,

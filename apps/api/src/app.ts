@@ -15,6 +15,7 @@ import {
 } from "./storage.js";
 import { LocalRequestSecurity, localSecurityConstants, type SecurityDecision } from "./security.js";
 import { ScanQueue, ScannerUnavailableError, type ScanRunner } from "./scanQueue.js";
+import { checkPackageAdvisories, type AdvisoryFetch } from "./packageAdvisories.js";
 
 export type AppOptions = {
   store?: ModernizerStore;
@@ -23,6 +24,8 @@ export type AppOptions = {
   secureCookies?: boolean;
   sessionKey?: Uint8Array;
   rateClock?: () => number;
+  advisoryFetch?: AdvisoryFetch;
+  advisoryClock?: () => Date;
   ownsStore?: boolean;
 };
 
@@ -232,6 +235,24 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
     if (!result) throw new ResourceNotFoundError("Snapshot not found.");
     return success(request, result.snapshot);
   });
+
+  app.post<{ Params: SnapshotIdParams; Body: unknown }>(
+    "/api/v1/snapshots/:snapshotId/package-advisories",
+    async (request) => {
+      if (!isRecord(request.body) || request.body.shareMetadata !== true) {
+        throw new TypeError("Confirm sharing package names with public metadata sources.");
+      }
+      const result = store.getSnapshot(request.params.snapshotId);
+      if (!result) throw new ResourceNotFoundError("Snapshot not found.");
+      return success(
+        request,
+        await checkPackageAdvisories(result.snapshot, {
+          ...(options.advisoryFetch ? { fetcher: options.advisoryFetch } : {}),
+          ...(options.advisoryClock ? { now: options.advisoryClock } : {}),
+        }),
+      );
+    },
+  );
 
   app.get<{ Params: SnapshotIdParams; Querystring: Query }>(
     "/api/v1/snapshots/:snapshotId/diff",

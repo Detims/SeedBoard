@@ -8,6 +8,8 @@ A single-user local application: register a local repository through the CLI, co
 
 Scans collect bounded file metadata only. They do not execute target code, apply migrations, contact providers, or verify deployment health. Unsupported or missing evidence stays visible as unknown or incomplete.
 
+Package freshness and runtime lifecycle checks are a separate, user-initiated action in the component inventory. After explicit consent, SeedBoard sends resolved package names to the public npm registry and checks Node.js runtime lifecycle data from endoflife.date; installed versions are compared locally. It does not send project files. These sources do not represent a security vulnerability scan; unknown or unsupported version data remains unknown.
+
 ## First slice commands
 
 From PowerShell, run `pnpm install --frozen-lockfile`, then `pnpm dev` and open `http://127.0.0.1:5173`. Register a project with the CLI steps in the [local setup guide](docs/runbooks/local-setup.md). Use `?demo=1` for the labeled synthetic example. The API binds to `127.0.0.1:4317`.

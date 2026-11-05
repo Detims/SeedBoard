@@ -27,6 +27,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
+import { PackageAdvisories } from "./components/PackageAdvisories.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
 import { demoSnapshotSource, type ProjectSummary, type SnapshotSource } from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
@@ -505,6 +506,7 @@ function LoadedDashboard({
             <InventoryView
               components={filtered}
               snapshot={snapshot}
+              source={snapshotSource}
               selectedId={selectedId}
               onSelect={setSelectedId}
               layer={layer}
@@ -1678,6 +1680,7 @@ function MetricCard({
 function InventoryView({
   components,
   snapshot,
+  source,
   selectedId,
   onSelect,
   layer,
@@ -1686,6 +1689,7 @@ function InventoryView({
 }: {
   components: Component[];
   snapshot: Snapshot;
+  source: SnapshotSource;
   selectedId: string | null;
   onSelect: (id: string) => void;
   layer: LayerFilter;
@@ -1702,6 +1706,7 @@ function InventoryView({
   );
   return (
     <section className="inventory-section panel-card">
+      <PackageAdvisories snapshot={snapshot} source={source} />
       <div className="inventory-toolbar">
         <div>
           <div className="section-title-row">

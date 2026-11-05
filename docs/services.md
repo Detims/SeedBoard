@@ -21,4 +21,11 @@ SeedBoard's exact resolved npm package versions are recorded in the [dependency 
 | actions/checkout      | CI source checkout, pinned to v7.0.1       | [Release notes](https://github.com/actions/checkout/releases/tag/v7.0.1)                                                     |
 | actions/setup-node    | CI runtime setup, pinned to v7.1.0         | [Release notes](https://github.com/actions/setup-node/releases/tag/v7.1.0)                                                   |
 
+## Optional package-status sources
+
+- npm public registry for user-initiated latest-version checks: [Registry documentation](https://docs.npmjs.com/cli/v11/using-npm/registry/).
+- endoflife.date for recognized runtime lifecycle data: [API v1 documentation](https://endoflife.date/docs/api/v1/).
+
 The package inventory is exhaustive for packages resolved by the current lockfile. A registry link does not mean that a vendor's version-specific guide or license terms have been individually reviewed. Target application services receive documentation links when a curated official reference is available; unmapped services remain visible as gaps in the dashboard appendix.
+
+The package-status lookup runs only after a user opts in. It sends resolved package names to the npm public registry, compares installed versions locally, and currently queries endoflife.date only for Node.js runtimes. Results include the lookup time and source links; successful provider responses also show when the provider data was retrieved and whether it came from SeedBoard's short in-memory cache. A newer npm `latest` tag means an update is available, not that the installed version is vulnerable. Other runtimes, non-semver versions, and unavailable provider records stay unknown.

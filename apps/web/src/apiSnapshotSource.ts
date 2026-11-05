@@ -1,5 +1,5 @@
 import { assertSnapshot, type Snapshot } from "@modernizer/contracts";
-import type { ProjectSummary, SnapshotSource } from "./snapshotSource.js";
+import type { PackageAdvisoryReport, ProjectSummary, SnapshotSource } from "./snapshotSource.js";
 
 type Envelope<T> = { data: T; meta: { requestId: string; nextCursor?: string | null } };
 type Job = { id: string; state: string; snapshotId: string | null };
@@ -107,6 +107,13 @@ export class LocalApiSnapshotSource implements SnapshotSource {
         `SCAN_${current.state.toUpperCase()}`,
       );
     return this.#loadSnapshot(current.snapshotId);
+  }
+
+  async checkPackageAdvisories(snapshotId: string): Promise<PackageAdvisoryReport> {
+    return this.#request<PackageAdvisoryReport>(
+      `/snapshots/${encodeURIComponent(snapshotId)}/package-advisories`,
+      { method: "POST", body: JSON.stringify({ shareMetadata: true }) },
+    );
   }
 
   async saveDecision(
