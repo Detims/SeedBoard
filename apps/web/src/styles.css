@@ -3107,6 +3107,29 @@ button:disabled {
 .scan-button {
   padding: 7px 12px;
 }
+.theme-toggle {
+  display: flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 7px;
+  padding: 0 11px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: #aab6c5;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 550;
+  text-align: left;
+}
+.theme-toggle:hover {
+  border-color: #354458;
+  color: #eff8f1;
+  background: #20352b;
+}
+.theme-toggle svg {
+  flex: 0 0 auto;
+}
 @media (max-width: 700px) {
   .view-toolbar {
     display: grid;
@@ -3116,5 +3139,246 @@ button:disabled {
   }
   .export-actions {
     justify-content: flex-start;
+  }
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  color: #e7edf4;
+  background: #111820;
+  --ink: #e7edf4;
+  --muted: #a0adba;
+  --soft-ink: #c0cad4;
+  --line: #303d49;
+  --surface: #1a242e;
+  --shell: #111820;
+  --navy: #0d1714;
+  --navy-soft: #18271f;
+  --accent: #70c28d;
+  --accent-dark: #91d6a5;
+  --mint: #86c995;
+  --shadow: 0 8px 28px rgba(0, 0, 0, 0.18), 0 1px 2px rgba(0, 0, 0, 0.24);
+}
+html[data-theme="dark"] body,
+html[data-theme="dark"] .app-shell,
+html[data-theme="dark"] :is(.main-area, .content-scroll, .inventory-section) {
+  color: #e7edf4;
+  background: #111820;
+}
+html[data-theme="dark"] .sidebar {
+  background: #0d1714;
+}
+html[data-theme="dark"] .theme-toggle {
+  border-color: #293a32;
+  color: #c1d2c5;
+  background: #15211b;
+}
+html[data-theme="dark"] .theme-toggle:hover {
+  border-color: #45624d;
+  color: #f0fff2;
+  background: #1b3022;
+}
+html[data-theme="dark"] .topbar {
+  border-color: #2b3742;
+  background: rgba(20, 29, 38, 0.94);
+}
+html[data-theme="dark"]
+  :is(
+    .metric-card,
+    .architecture-section,
+    .map-card,
+    .details-panel,
+    .panel-card,
+    .assessment-card,
+    .add-project-dialog,
+    .empty-state,
+    .details-empty,
+    .table-wrap,
+    .workspace-menu,
+    .snapshot-value
+  ) {
+  border-color: #303d49;
+  color: #e7edf4;
+  background-color: #1a242e;
+  box-shadow: var(--shadow);
+}
+html[data-theme="dark"]
+  :is(
+    .global-search,
+    .global-search kbd,
+    .snapshot-select,
+    .soft-button,
+    .documentation-search,
+    .suggestion-filter,
+    .assessment-card .suggestion-evidence,
+    .evidence-card,
+    .docs-detail-card,
+    .pipeline-track,
+    .pipeline-node,
+    .layer-select,
+    .filter-chip,
+    .action-notice
+  ) {
+  border-color: #34424f;
+  color: #c4ced8;
+  background-color: #202b36;
+}
+html[data-theme="dark"]
+  :is(
+    .global-search input,
+    .documentation-search input,
+    .layer-select select,
+    .add-project-form input,
+    .decision-actions input
+  ) {
+  border-color: #394957;
+  color: #e7edf4;
+  background-color: #151f28;
+}
+html[data-theme="dark"]
+  :is(
+    .page-heading h1,
+    .section-header h2,
+    .section-title-row h2,
+    .inventory-toolbar h2,
+    .view-toolbar h2,
+    .panel-header h2,
+    .assessment-card h3,
+    .details-title h3,
+    .details-section-title h4,
+    .component-cell strong,
+    .metric-main strong,
+    .breadcrumbs strong,
+    .snapshot-value,
+    .error-shell h1,
+    .dialog-heading h2
+  ) {
+  color: #e7edf4;
+}
+html[data-theme="dark"] .main-area :is(h1, h2, h3, h4, strong) {
+  color: #e7edf4;
+}
+html[data-theme="dark"] .main-area :is(p, small) {
+  color: #a0adba;
+}
+html[data-theme="dark"] .main-area .form-error {
+  color: #f0a69d;
+}
+html[data-theme="dark"]
+  :is(
+    .page-heading p,
+    .section-header p,
+    .metric-main span,
+    .metric-helper,
+    .panel-header p,
+    .panel-footer-note,
+    .page-footer,
+    .breadcrumbs,
+    .inventory-table td,
+    .details-locator,
+    .detail-muted,
+    .connection-copy small,
+    .evidence-copy small,
+    .docs-detail-card span,
+    .view-toolbar p,
+    .assessment-card > p,
+    .confidence-label,
+    .assessment-card details li,
+    .inventory-bottom-note,
+    .dialog-description,
+    .field-help,
+    .error-shell p
+  ) {
+  color: #a0adba;
+}
+html[data-theme="dark"]
+  :is(
+    .inventory-table th,
+    .inventory-table td,
+    .inventory-table tbody tr,
+    .suggestion-preview-row,
+    .details-divider,
+    .details-section,
+    .inventory-bottom-note,
+    .page-footer,
+    .panel-footer-note
+  ) {
+  border-color: #2d3944;
+}
+html[data-theme="dark"] .inventory-table th {
+  color: #a0adba;
+  background: #17212b;
+}
+html[data-theme="dark"] .inventory-table tbody tr:hover,
+html[data-theme="dark"] .inventory-table tbody tr.selected-row {
+  background: #24323f;
+}
+html[data-theme="dark"] :is(.flow-node, .react-flow__controls, .react-flow__controls-button) {
+  border-color: #354452 !important;
+  color: #e7edf4;
+  background: #1a2631 !important;
+}
+html[data-theme="dark"] .flow-node:hover,
+html[data-theme="dark"] .flow-node.selected {
+  border-color: #70c28d !important;
+  background: #20352b !important;
+}
+html[data-theme="dark"] .flow-node-copy strong {
+  color: #e7edf4;
+}
+html[data-theme="dark"] :is(.graph-canvas, .graph-minimap) {
+  background-color: #141e27;
+}
+html[data-theme="dark"] .react-flow__edge-textbg {
+  fill: #18232d;
+}
+html[data-theme="dark"] .react-flow__controls-button svg {
+  fill: #c4ced8;
+}
+html[data-theme="dark"] :is(.state-banner, .action-notice, .workspace-menu-error, .error-shell) {
+  border-color: #3b4651;
+  color: #d7e0e9;
+  background: #202b35;
+}
+html[data-theme="dark"] :is(.workspace-option, .workspace-option.selected) {
+  color: #d7e0e9;
+}
+html[data-theme="dark"] .workspace-option.selected {
+  border-color: #385240;
+  background: #20352b;
+}
+html[data-theme="dark"] :is(.filter-chip.active, .suggestion-filter.active, .soft-button.selected) {
+  border-color: #456450;
+  color: #c8f0d0;
+  background: #20352b;
+}
+html[data-theme="dark"]
+  :is(.status-pill.positive, .docs-pill.complete, .observation-state.positive) {
+  border-color: #385744;
+  color: #9fe0ae;
+  background: #1b3022;
+}
+html[data-theme="dark"] :is(.status-pill.negative, .docs-pill.undocumented) {
+  border-color: #68423f;
+  color: #f0a69d;
+  background: #342321;
+}
+html[data-theme="dark"] :is(.status-pill.unknown, .docs-pill.partial, .observation-state.unknown) {
+  border-color: #5d5134;
+  color: #e4c77e;
+  background: #302a1c;
+}
+html[data-theme="dark"] :is(input, select, button, a):focus-visible {
+  outline-color: #86d49a;
+}
+
+@media (max-width: 950px) {
+  .theme-toggle {
+    width: 100%;
+    justify-content: center;
+    padding: 0;
+  }
+  .theme-toggle span {
+    display: none;
   }
 }

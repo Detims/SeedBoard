@@ -16,15 +16,25 @@ import {
   GitBranch,
   LayoutDashboard,
   ListFilter,
+  Moon,
   Plus,
   Search,
   Settings2,
   ShieldCheck,
   Sparkles,
+  Sun,
   Workflow,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { ArchitectureGraph } from "./components/ArchitectureGraph.js";
 import { ComponentDetails } from "./components/ComponentDetails.js";
 import { PackageAdvisories } from "./components/PackageAdvisories.js";
@@ -32,6 +42,14 @@ import { QualityCoverage } from "./components/QualityCoverage.js";
 import type { Component, Snapshot, Suggestion } from "@modernizer/contracts";
 import { demoSnapshotSource, type ProjectSummary, type SnapshotSource } from "./snapshotSource.js";
 import { LocalApiError } from "./apiSnapshotSource.js";
+import {
+  applyTheme,
+  getInitialTheme,
+  getSavedThemePreference,
+  getSystemTheme,
+  saveTheme,
+  type Theme,
+} from "./theme.js";
 import {
   filterDocumentationComponents,
   filterSuggestionsByCategory,
@@ -227,6 +245,9 @@ function LoadedDashboard({
   onCloseAddProject: () => void;
   onRegisterProject: (input: { rootPath: string; name?: string }) => Promise<void>;
 }) {
+  const [themePreference, setThemePreference] = useState<Theme | null>(getSavedThemePreference);
+  const [systemTheme, setSystemTheme] = useState<Theme>(getSystemTheme);
+  const theme = themePreference ?? systemTheme;
   const [page, setPage] = useState<Page>("overview");
   const [query, setQuery] = useState("");
   const [layer, setLayer] = useState<LayerFilter>("all");
@@ -249,6 +270,23 @@ function LoadedDashboard({
   const selected = snapshot.components.find((component) => component.id === selectedId) ?? null;
   const counts = getInventoryCounts(snapshot, filtered.length);
   const layoutKey = `modernizer:v1:${snapshot.projectId}:${snapshot.id}`;
+
+  useLayoutEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    try {
+      const media = window.matchMedia("(prefers-color-scheme: dark)");
+      const updateSystemTheme = (event: MediaQueryListEvent) => {
+        setSystemTheme(event.matches ? "dark" : "light");
+      };
+      media.addEventListener("change", updateSystemTheme);
+      return () => media.removeEventListener("change", updateSystemTheme);
+    } catch {
+      return undefined;
+    }
+  }, []);
 
   useEffect(() => {
     browserLayoutStore.save(layoutKey, positions);
@@ -354,6 +392,25 @@ function LoadedDashboard({
           </div>
           <p>{counts.undocumented} components need a documentation review.</p>
         </div>
+        <button
+          className="theme-toggle"
+          type="button"
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          aria-pressed={theme === "dark"}
+          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          onClick={() => {
+            const nextTheme = theme === "dark" ? "light" : "dark";
+            saveTheme(nextTheme);
+            setThemePreference(nextTheme);
+          }}
+        >
+          {theme === "dark" ? (
+            <Sun size={16} aria-hidden="true" />
+          ) : (
+            <Moon size={16} aria-hidden="true" />
+          )}
+          <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
+        </button>
         <button className="profile-button">
           <span className="profile-avatar">JD</span>
           <span className="profile-name">Local workspace</span>
