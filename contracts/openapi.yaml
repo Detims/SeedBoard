@@ -184,6 +184,37 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+  /snapshots/{snapshotId}/package-advisories:
+    parameters:
+      - $ref: "#/components/parameters/SnapshotId"
+    post:
+      tags: [snapshots]
+      operationId: checkPackageAdvisories
+      description: >-
+        Performs bounded public npm registry and endoflife.date lookups only after the user
+        explicitly consents to sharing package names. Installed versions are compared locally; project files are
+        never sent. This is package freshness/lifecycle metadata, not a vulnerability scan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [shareMetadata]
+              properties:
+                shareMetadata: { const: true }
+      responses:
+        "200":
+          description: Sourced package and runtime status with lookup and provider retrieval times.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PackageAdvisoryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
   /projects/{projectId}/layouts/{name}:
     parameters:
       - $ref: "#/components/parameters/ProjectId"
@@ -502,6 +533,56 @@ components:
       required: [data, meta]
       properties:
         data: { $ref: "./snapshot.schema.json" }
+        meta: { $ref: "#/components/schemas/Meta" }
+    PackageAdvisoryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required:
+            [checkedAt, totalPackages, checkedPackages, truncated, sources, packages, lifecycles]
+          properties:
+            checkedAt: { type: string, format: date-time }
+            totalPackages: { type: integer, minimum: 0 }
+            checkedPackages: { type: integer, minimum: 0 }
+            truncated: { type: boolean }
+            sources:
+              type: array
+              items:
+                type: object
+                required: [name, url, retrievedAt, cached]
+                properties:
+                  name: { type: string }
+                  url: { type: string, format: uri }
+                  retrievedAt: { type: string, format: date-time }
+                  cached: { type: boolean }
+            packages:
+              type: array
+              items:
+                type: object
+                required: [componentId, name, installedVersion, latestVersion, status, sourceUrl]
+                properties:
+                  componentId: { type: string }
+                  name: { type: string }
+                  installedVersion: { type: string }
+                  latestVersion: { type: [string, "null"] }
+                  status: { type: string, enum: [current, outdated, unknown] }
+                  sourceUrl: { type: string, format: uri }
+            lifecycles:
+              type: array
+              items:
+                type: object
+                required: [componentId, name, version, product, cycle, status, endOfLife, sourceUrl]
+                properties:
+                  componentId: { type: string }
+                  name: { type: string }
+                  version: { type: string }
+                  product: { type: string }
+                  cycle: { type: [string, "null"] }
+                  status: { type: string, enum: [supported, unsupported, eol, unknown] }
+                  endOfLife: { type: [string, "null"] }
+                  sourceUrl: { type: string, format: uri }
         meta: { $ref: "#/components/schemas/Meta" }
     DiffResponse:
       type: object

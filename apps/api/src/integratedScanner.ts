@@ -4,6 +4,7 @@ import { scanProject } from "@modernizer/discovery";
 import { evaluateSuggestions, type RuleDiscoveryFacts } from "@modernizer/rules";
 import { resolveDocumentation } from "@modernizer/docs";
 import type { ScanRunner } from "./scanQueue.js";
+import { captureRepositoryRevision } from "./repositoryChanges.js";
 
 /** Compose bounded collection, docs coverage, deterministic rules and contract validation. */
 export const integratedScanRunner: ScanRunner = async (project, context) => {
@@ -11,6 +12,7 @@ export const integratedScanRunner: ScanRunner = async (project, context) => {
   const result = await scanProject({
     rootPath: project.rootPath,
     projectId: project.id,
+    sourceRevision: await captureRepositoryRevision(project.rootPath),
     signal: context.signal,
   });
   context.reportProgress({
