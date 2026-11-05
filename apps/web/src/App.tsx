@@ -397,25 +397,6 @@ function LoadedDashboard({
           </div>
           <p>{counts.undocumented} components need a documentation review.</p>
         </div>
-        <button
-          className="theme-toggle"
-          type="button"
-          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          aria-pressed={theme === "dark"}
-          title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          onClick={() => {
-            const nextTheme = theme === "dark" ? "light" : "dark";
-            saveTheme(nextTheme);
-            setThemePreference(nextTheme);
-          }}
-        >
-          {theme === "dark" ? (
-            <Sun size={16} aria-hidden="true" />
-          ) : (
-            <Moon size={16} aria-hidden="true" />
-          )}
-          <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
-        </button>
         <button className="profile-button">
           <span className="profile-avatar">JD</span>
           <span className="profile-name">Local workspace</span>
@@ -457,6 +438,24 @@ function LoadedDashboard({
                 Run scan
               </button>
             )}
+            <button
+              className="icon-button theme-toggle"
+              type="button"
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              aria-pressed={theme === "dark"}
+              title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+              onClick={() => {
+                const nextTheme = theme === "dark" ? "light" : "dark";
+                saveTheme(nextTheme);
+                setThemePreference(nextTheme);
+              }}
+            >
+              {theme === "dark" ? (
+                <Sun size={17} aria-hidden="true" />
+              ) : (
+                <Moon size={17} aria-hidden="true" />
+              )}
+            </button>
             <button className="icon-button" aria-label="Help and information" title="Help">
               <CircleHelp size={18} />
             </button>

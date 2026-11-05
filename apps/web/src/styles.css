@@ -3178,27 +3178,20 @@ button:disabled {
   padding: 7px 12px;
 }
 .theme-toggle {
-  display: flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 10px;
-  margin: 0 0 7px;
-  padding: 0 11px;
-  border: 1px solid transparent;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e3e8ed;
   border-radius: 7px;
-  color: #aab6c5;
-  background: transparent;
-  font-size: 12px;
-  font-weight: 550;
-  text-align: left;
+  color: #536479;
+  background: #fafbfc;
 }
 .theme-toggle:hover {
-  border-color: #354458;
-  color: #eff8f1;
-  background: #20352b;
-}
-.theme-toggle svg {
-  flex: 0 0 auto;
+  border-color: #cdd8e2;
+  color: #28724d;
+  background: #f1f6f3;
 }
 @media (max-width: 700px) {
   .view-toolbar {
@@ -3239,13 +3232,13 @@ html[data-theme="dark"] .sidebar {
   background: #0d1714;
 }
 html[data-theme="dark"] .theme-toggle {
-  border-color: #293a32;
-  color: #c1d2c5;
-  background: #15211b;
+  border-color: #354458;
+  color: #d3dfeb;
+  background: #1a242e;
 }
 html[data-theme="dark"] .theme-toggle:hover {
-  border-color: #45624d;
-  color: #f0fff2;
+  border-color: #536b7f;
+  color: #eff8f1;
   background: #1b3022;
 }
 html[data-theme="dark"] .topbar {
@@ -3440,15 +3433,4 @@ html[data-theme="dark"] :is(.status-pill.unknown, .docs-pill.partial, .observati
 }
 html[data-theme="dark"] :is(input, select, button, a):focus-visible {
   outline-color: #86d49a;
-}
-
-@media (max-width: 950px) {
-  .theme-toggle {
-    width: 100%;
-    justify-content: center;
-    padding: 0;
-  }
-  .theme-toggle span {
-    display: none;
-  }
 }
