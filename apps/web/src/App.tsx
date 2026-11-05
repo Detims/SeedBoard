@@ -1113,6 +1113,9 @@ function SnapshotPicker({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [selecting, setSelecting] = useState(false);
+  const [open, setOpen] = useState(false);
+  const pickerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -1140,6 +1143,15 @@ function SnapshotPicker({
     };
   }, [snapshot.demo, snapshot.id, snapshot.projectId, source]);
 
+  useEffect(() => {
+    if (!open) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!pickerRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    return () => document.removeEventListener("pointerdown", closeOnOutsideClick);
+  }, [open]);
+
   const options = history.some((item) => item.id === snapshot.id)
     ? history
     : [
@@ -1153,40 +1165,81 @@ function SnapshotPicker({
         ...history,
       ];
 
+  const selectedSnapshotLabel = snapshot.demo
+    ? "Synthetic example"
+    : `${formatTime.format(new Date(snapshot.capturedAt))} · ${snapshot.components.length} objects`;
+
   return (
-    <label className="snapshot-select">
-      <span className="snapshot-label">SNAPSHOT</span>
-      <span className="snapshot-value">
-        <span className="snapshot-indicator" />
-        <select
-          aria-label="Select a project snapshot"
-          value={snapshot.demo ? "demo" : snapshot.id}
-          disabled={snapshot.demo || !source.loadSnapshotById || loading || selecting}
-          onChange={(event) => {
-            const snapshotId = event.target.value;
-            if (!snapshotId || snapshotId === snapshot.id) return;
-            setSelecting(true);
-            void onSelectSnapshot(snapshotId).finally(() => setSelecting(false));
-          }}
-        >
-          {snapshot.demo ? (
-            <option value="demo">Synthetic example</option>
-          ) : (
-            options.map((item) => (
-              <option key={item.id} value={item.id}>
-                {formatTime.format(new Date(item.capturedAt))} · {item.componentCount} objects
-              </option>
-            ))
-          )}
-        </select>
-        <ChevronDown size={14} aria-hidden="true" />
-      </span>
+    <div
+      ref={pickerRef}
+      className="snapshot-picker"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          setOpen(false);
+          triggerRef.current?.focus();
+        }
+      }}
+    >
+      <button
+        ref={triggerRef}
+        className="snapshot-select"
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-label={`Selected snapshot: ${selectedSnapshotLabel}. Choose snapshot`}
+        disabled={
+          snapshot.demo || !source.loadSnapshotById || loading || selecting || options.length < 2
+        }
+        onClick={() => setOpen((current) => !current)}
+      >
+        <span className="snapshot-label">SNAPSHOT</span>
+        <span className="snapshot-value">
+          <span className="snapshot-indicator" />
+          <span className="snapshot-current-value">
+            {selecting ? "Loading snapshot…" : selectedSnapshotLabel}
+          </span>
+          <ChevronDown size={14} aria-hidden="true" />
+        </span>
+      </button>
+      {open && (
+        <div className="snapshot-menu" role="menu" aria-label="Choose a snapshot">
+          {options.map((item) => {
+            const selected = item.id === snapshot.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={selected}
+                className={`snapshot-option ${selected ? "selected" : ""}`}
+                disabled={selecting}
+                onClick={() => {
+                  setOpen(false);
+                  if (selected) return;
+                  setSelecting(true);
+                  void onSelectSnapshot(item.id).finally(() => setSelecting(false));
+                }}
+              >
+                <span className="snapshot-option-copy">
+                  <span className="snapshot-option-name">
+                    {formatTime.format(new Date(item.capturedAt))}
+                  </span>
+                  <span className="snapshot-option-meta">
+                    {item.componentCount} objects · {item.relationshipCount} relationships
+                  </span>
+                </span>
+                {selected && <Check size={15} aria-hidden="true" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
       {error && (
         <span className="snapshot-history-error" role="status">
           {error}
         </span>
       )}
-    </label>
+    </div>
   );
 }
 
