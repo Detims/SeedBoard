@@ -39,6 +39,7 @@ export type RepositoryChanges = {
 
 export interface SnapshotSource {
   loadSnapshot(): Promise<Snapshot>;
+  loadSnapshotById?(snapshotId: string): Promise<Snapshot>;
   listProjects?(): Promise<ProjectSummary[]>;
   getSelectedProject?(): ProjectSummary | null;
   selectProject?(projectId: string): Promise<Snapshot>;

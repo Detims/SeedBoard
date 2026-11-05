@@ -139,6 +139,19 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
     }
   };
 
+  const selectSnapshot = async (snapshotId: string) => {
+    if (!snapshotSource.loadSnapshotById) return;
+    try {
+      setSnapshotState({
+        status: "ready",
+        snapshot: await snapshotSource.loadSnapshotById(snapshotId),
+      });
+      setScanNotice("");
+    } catch (error) {
+      setScanNotice(error instanceof Error ? error.message : "The snapshot could not be loaded.");
+    }
+  };
+
   useEffect(() => {
     let active = true;
     setSnapshotState({ status: "loading" });
@@ -203,6 +216,7 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
       scanNotice={scanNotice}
       onDismissScanNotice={() => setScanNotice("")}
       onSelectProject={(projectId) => void selectProject(projectId)}
+      onSelectSnapshot={selectSnapshot}
       onOpenAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
       addProjectOpen={addProjectOpen}
       onCloseAddProject={() => setAddProjectOpen(false)}
@@ -233,6 +247,7 @@ function LoadedDashboard({
   scanNotice,
   onDismissScanNotice,
   onSelectProject,
+  onSelectSnapshot,
   onScan,
   onOpenAddProject,
   addProjectOpen,
@@ -244,6 +259,7 @@ function LoadedDashboard({
   scanNotice: string;
   onDismissScanNotice: () => void;
   onSelectProject: (projectId: string) => void;
+  onSelectSnapshot: (snapshotId: string) => Promise<void>;
   onScan: () => void;
   onOpenAddProject?: (() => void) | undefined;
   addProjectOpen: boolean;
@@ -257,6 +273,8 @@ function LoadedDashboard({
   const [query, setQuery] = useState("");
   const [layer, setLayer] = useState<LayerFilter>("all");
   const [selectedId, setSelectedId] = useState(snapshot.components[0]?.id ?? null);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [focusNeighbors, setFocusNeighbors] = useState(false);
   const [positions, setPositions] = useState<PositionMap>(() => {
     const defaults = deterministicLayout(snapshot.components);
@@ -273,6 +291,7 @@ function LoadedDashboard({
     [snapshot.components, query],
   );
   const selected = snapshot.components.find((component) => component.id === selectedId) ?? null;
+  const selectedProjectName = snapshotSource.getSelectedProject?.()?.name ?? snapshot.projectId;
   const counts = getInventoryCounts(snapshot, filtered.length);
   const layoutKey = `modernizer:v1:${snapshot.projectId}:${snapshot.id}`;
 
@@ -333,12 +352,6 @@ function LoadedDashboard({
           <span className="brand-build">v0.1</span>
         </a>
 
-        <WorkspaceSwitcher
-          snapshot={snapshot}
-          source={snapshotSource}
-          onSelectProject={onSelectProject}
-        />
-
         <div className="nav-group-label">WORKSPACE</div>
         <nav className="primary-nav" aria-label="Workspace">
           {navigation.slice(0, 3).map(({ id, label, icon: Icon }) => (
@@ -376,6 +389,11 @@ function LoadedDashboard({
         </nav>
 
         <div className="sidebar-spacer" />
+        <WorkspaceSwitcher
+          snapshot={snapshot}
+          source={snapshotSource}
+          onSelectProject={onSelectProject}
+        />
         <div className="coverage-card">
           <div className="coverage-title">
             <ShieldCheck size={15} aria-hidden="true" />
@@ -397,11 +415,37 @@ function LoadedDashboard({
           </div>
           <p>{counts.undocumented} components need a documentation review.</p>
         </div>
-        <button className="profile-button">
-          <span className="profile-avatar">JD</span>
-          <span className="profile-name">Local workspace</span>
-          <Settings2 size={16} aria-hidden="true" />
-        </button>
+        <div className="account-menu-wrap">
+          <button
+            className="profile-button"
+            type="button"
+            aria-haspopup="menu"
+            aria-expanded={accountOpen}
+            onClick={() => setAccountOpen((open) => !open)}
+          >
+            <span className="profile-avatar">L</span>
+            <span className="profile-name">Local access</span>
+            <Settings2 size={16} aria-hidden="true" />
+          </button>
+          {accountOpen && (
+            <div className="account-menu" role="menu" aria-label="Local account">
+              <div className="account-menu-status">
+                <strong>Local access</strong>
+                <span>No account is connected</span>
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setAccountOpen(false);
+                  setSettingsOpen(true);
+                }}
+              >
+                <Settings2 size={14} aria-hidden="true" /> Settings
+              </button>
+            </div>
+          )}
+        </div>
       </aside>
 
       <main className="main-area">
@@ -496,16 +540,11 @@ function LoadedDashboard({
                                 : "Compare immutable snapshots to see added, removed, and changed objects."}
               </p>
             </div>
-            <div className="snapshot-select">
-              <span className="snapshot-label">SNAPSHOT</span>
-              <span className="snapshot-value">
-                <span className="snapshot-indicator" />{" "}
-                {snapshot.demo
-                  ? "Synthetic example"
-                  : formatTime.format(new Date(snapshot.capturedAt))}{" "}
-                <ChevronDown size={14} />
-              </span>
-            </div>
+            <SnapshotPicker
+              snapshot={snapshot}
+              source={snapshotSource}
+              onSelectSnapshot={onSelectSnapshot}
+            />
           </div>
 
           {snapshot.demo && (
@@ -811,6 +850,75 @@ function LoadedDashboard({
       {addProjectOpen && (
         <AddProjectDialog onClose={onCloseAddProject} onRegister={onRegisterProject} />
       )}
+      {settingsOpen && (
+        <SettingsDialog
+          projectName={selectedProjectName}
+          canAddProject={Boolean(onOpenAddProject)}
+          onClose={() => setSettingsOpen(false)}
+          onAddProject={() => {
+            setSettingsOpen(false);
+            onOpenAddProject?.();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function SettingsDialog({
+  projectName,
+  canAddProject,
+  onClose,
+  onAddProject,
+}: {
+  projectName: string;
+  canAddProject: boolean;
+  onClose: () => void;
+  onAddProject: () => void;
+}) {
+  return (
+    <div
+      className="dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="add-project-dialog settings-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+      >
+        <div className="dialog-heading">
+          <div>
+            <span className="eyebrow">LOCAL CONFIGURATION</span>
+            <h2 id="settings-title">Settings</h2>
+          </div>
+          <button
+            className="icon-button"
+            type="button"
+            aria-label="Close settings"
+            onClick={onClose}
+          >
+            <X size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="settings-list">
+          <div>
+            <strong>Access</strong>
+            <span>Local only. Sign-in is not configured for this installation.</span>
+          </div>
+          <div>
+            <strong>Selected project</strong>
+            <span>{projectName}</span>
+          </div>
+        </div>
+        {canAddProject && (
+          <button className="soft-button" type="button" onClick={onAddProject}>
+            <Plus size={14} aria-hidden="true" /> Add project
+          </button>
+        )}
+      </section>
     </div>
   );
 }
@@ -981,6 +1089,104 @@ function WorkspaceSwitcher({
         </div>
       )}
     </div>
+  );
+}
+
+function SnapshotPicker({
+  snapshot,
+  source,
+  onSelectSnapshot,
+}: {
+  snapshot: Snapshot;
+  source: SnapshotSource;
+  onSelectSnapshot: (snapshotId: string) => Promise<void>;
+}) {
+  const [history, setHistory] = useState<
+    Array<{
+      id: string;
+      capturedAt: string;
+      assessmentStatus: string;
+      componentCount: number;
+      relationshipCount: number;
+    }>
+  >([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [selecting, setSelecting] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (snapshot.demo || !source.listHistory) {
+      setHistory([]);
+      setError("");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    source
+      .listHistory(snapshot.projectId)
+      .then((items) => {
+        if (active) setHistory(items);
+      })
+      .catch((cause: unknown) => {
+        if (active)
+          setError(cause instanceof Error ? cause.message : "Snapshot history is unavailable.");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [snapshot.demo, snapshot.id, snapshot.projectId, source]);
+
+  const options = history.some((item) => item.id === snapshot.id)
+    ? history
+    : [
+        {
+          id: snapshot.id,
+          capturedAt: snapshot.capturedAt,
+          assessmentStatus: "current",
+          componentCount: snapshot.components.length,
+          relationshipCount: snapshot.relationships.length,
+        },
+        ...history,
+      ];
+
+  return (
+    <label className="snapshot-select">
+      <span className="snapshot-label">SNAPSHOT</span>
+      <span className="snapshot-value">
+        <span className="snapshot-indicator" />
+        <select
+          aria-label="Select a project snapshot"
+          value={snapshot.demo ? "demo" : snapshot.id}
+          disabled={snapshot.demo || !source.loadSnapshotById || loading || selecting}
+          onChange={(event) => {
+            const snapshotId = event.target.value;
+            if (!snapshotId || snapshotId === snapshot.id) return;
+            setSelecting(true);
+            void onSelectSnapshot(snapshotId).finally(() => setSelecting(false));
+          }}
+        >
+          {snapshot.demo ? (
+            <option value="demo">Synthetic example</option>
+          ) : (
+            options.map((item) => (
+              <option key={item.id} value={item.id}>
+                {formatTime.format(new Date(item.capturedAt))} · {item.componentCount} objects
+              </option>
+            ))
+          )}
+        </select>
+        <ChevronDown size={14} aria-hidden="true" />
+      </span>
+      {error && (
+        <span className="snapshot-history-error" role="status">
+          {error}
+        </span>
+      )}
+    </label>
   );
 }
 
