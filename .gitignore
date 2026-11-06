@@ -5,3 +5,4 @@ coverage/
 .modernizer-local/
 .local-build-notes/
 *.log
+.pnpm-store/
