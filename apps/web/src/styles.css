@@ -441,9 +441,11 @@ button:disabled {
 }
 .profile-button {
   display: flex;
+  width: 100%;
+  min-width: 0;
   align-items: center;
   gap: 9px;
-  margin: 14px 1px 0;
+  margin: 14px 0 0;
   padding: 10px 3px 2px;
   border: 0;
   border-top: 1px solid #293544;
