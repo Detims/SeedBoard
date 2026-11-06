@@ -194,6 +194,11 @@ export function buildApp(options: AppOptions = {}): FastifyInstance {
 
   app.get("/api/v1/projects", async (request) => success(request, store.listProjects()));
 
+  app.delete<{ Params: ProjectIdParams }>("/api/v1/projects/:projectId", async (request) => {
+    store.removeProject(request.params.projectId);
+    return success(request, { removed: true });
+  });
+
   app.post<{ Body: unknown }>("/api/v1/projects", async (request, reply) => {
     const input = validateProjectRegistration(request.body);
     let project: { id: string; name: string; createdAt: string };

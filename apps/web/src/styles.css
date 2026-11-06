@@ -223,6 +223,32 @@ button:disabled {
   background: transparent;
   text-align: left;
 }
+.workspace-option-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+.workspace-option-row .workspace-option {
+  width: auto;
+  flex: 1;
+}
+.workspace-option-remove {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #8793a2;
+  background: transparent;
+}
+.workspace-option-remove:hover {
+  border-color: #efc4bd;
+  color: #b44336;
+  background: #fff2ef;
+}
 .workspace-option:hover,
 .workspace-option.selected {
   border-color: #c9ddce;
@@ -3674,6 +3700,14 @@ html[data-theme="dark"] .account-menu > button {
 html[data-theme="dark"] :is(.workspace-option:hover, .snapshot-option:hover) {
   border-color: #465747;
   background: #293c31;
+}
+html[data-theme="dark"] .workspace-option-remove {
+  color: #aebaca;
+}
+html[data-theme="dark"] .workspace-option-remove:hover {
+  border-color: #68423f;
+  color: #f0a69d;
+  background: #342321;
 }
 html[data-theme="dark"] :is(.workspace-option.selected, .snapshot-option.selected) {
   border-color: #385240;

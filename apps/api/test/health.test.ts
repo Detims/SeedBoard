@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -170,6 +170,19 @@ describe("local API security and envelopes", () => {
       { id: project.id, name: "Registered from dashboard", createdAt: project.createdAt },
     ]);
     expect(response.body).not.toContain(root);
+  });
+
+  it("removes a project registration without touching its folder", async () => {
+    const removed = await app.inject({
+      method: "DELETE",
+      url: `/api/v1/projects/${project.id}`,
+      headers: authHeaders({ "content-type": "application/json" }),
+      payload: {},
+    });
+    expect(removed.statusCode).toBe(200);
+    expect(removed.json().data).toEqual({ removed: true });
+    expect(store.listProjects()).toEqual([]);
+    expect((await stat(root)).isDirectory()).toBe(true);
   });
 
   it("rejects invalid project registrations", async () => {

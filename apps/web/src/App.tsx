@@ -139,6 +139,25 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
     }
   };
 
+  const removeProject = async (projectId: string) => {
+    if (!snapshotSource.removeProject) return;
+    const wasSelected =
+      snapshotState.status === "ready" && snapshotState.snapshot.projectId === projectId;
+    await snapshotSource.removeProject(projectId);
+    if (wasSelected) {
+      setSnapshotState({ status: "loading" });
+      try {
+        setSnapshotState({ status: "ready", snapshot: await snapshotSource.loadSnapshot() });
+      } catch (error) {
+        setSnapshotState({
+          status: "error",
+          message: error instanceof Error ? error.message : "No project could be loaded.",
+          code: error instanceof LocalApiError ? error.code : "PROJECTS_EMPTY",
+        });
+      }
+    }
+  };
+
   const selectSnapshot = async (snapshotId: string) => {
     if (!snapshotSource.loadSnapshotById) return;
     try {
@@ -216,6 +235,7 @@ export function App({ snapshotSource = demoSnapshotSource }: { snapshotSource?: 
       scanNotice={scanNotice}
       onDismissScanNotice={() => setScanNotice("")}
       onSelectProject={(projectId) => void selectProject(projectId)}
+      onRemoveProject={removeProject}
       onSelectSnapshot={selectSnapshot}
       onOpenAddProject={snapshotSource.registerProject ? () => setAddProjectOpen(true) : undefined}
       addProjectOpen={addProjectOpen}
@@ -247,6 +267,7 @@ function LoadedDashboard({
   scanNotice,
   onDismissScanNotice,
   onSelectProject,
+  onRemoveProject,
   onSelectSnapshot,
   onScan,
   onOpenAddProject,
@@ -259,6 +280,7 @@ function LoadedDashboard({
   scanNotice: string;
   onDismissScanNotice: () => void;
   onSelectProject: (projectId: string) => void;
+  onRemoveProject: (projectId: string) => Promise<void>;
   onSelectSnapshot: (snapshotId: string) => Promise<void>;
   onScan: () => void;
   onOpenAddProject?: (() => void) | undefined;
@@ -393,6 +415,7 @@ function LoadedDashboard({
           snapshot={snapshot}
           source={snapshotSource}
           onSelectProject={onSelectProject}
+          onRemoveProject={onRemoveProject}
         />
         <div className="coverage-card">
           <div className="coverage-title">
@@ -952,10 +975,12 @@ function WorkspaceSwitcher({
   snapshot,
   source,
   onSelectProject,
+  onRemoveProject,
 }: {
   snapshot: Snapshot;
   source: SnapshotSource;
   onSelectProject: (projectId: string) => void;
+  onRemoveProject: (projectId: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const [projects, setProjects] = useState<ProjectSummary[]>(() => {
@@ -1066,23 +1091,53 @@ function WorkspaceSwitcher({
             projects.map((project) => {
               const selected = project.id === snapshot.projectId;
               return (
-                <button
-                  className={`workspace-option ${selected ? "selected" : ""}`}
-                  key={project.id}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={selected}
-                  onClick={() => {
-                    setOpen(false);
-                    if (!selected) onSelectProject(project.id);
-                  }}
-                >
-                  <span className="workspace-option-copy">
-                    <span className="workspace-option-name">{project.name}</span>
-                    <span className="workspace-option-id">{project.id}</span>
-                  </span>
-                  {selected && <Check size={15} aria-hidden="true" />}
-                </button>
+                <div className="workspace-option-row" key={project.id}>
+                  <button
+                    className={`workspace-option ${selected ? "selected" : ""}`}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={selected}
+                    onClick={() => {
+                      setOpen(false);
+                      if (!selected) onSelectProject(project.id);
+                    }}
+                  >
+                    <span className="workspace-option-copy">
+                      <span className="workspace-option-name">{project.name}</span>
+                      <span className="workspace-option-id">{project.id}</span>
+                    </span>
+                    {selected && <Check size={15} aria-hidden="true" />}
+                  </button>
+                  {source.removeProject && (
+                    <button
+                      className="workspace-option-remove"
+                      type="button"
+                      aria-label={`Remove ${project.name} from SeedBoard`}
+                      title={`Remove ${project.name} from SeedBoard`}
+                      onClick={async () => {
+                        const confirmed = window.confirm(
+                          `Remove “${project.name}” from SeedBoard? Its scans, snapshots, layouts, and suggestion decisions will be deleted. The project folder and its files will remain untouched.`,
+                        );
+                        if (!confirmed) return;
+                        setError("");
+                        setLoading(true);
+                        try {
+                          await onRemoveProject(project.id);
+                          await refreshProjects();
+                          if (projects.length <= 1) setOpen(false);
+                        } catch (caught) {
+                          setError(
+                            caught instanceof Error ? caught.message : "Could not remove project.",
+                          );
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      <X size={14} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
               );
             })
           )}

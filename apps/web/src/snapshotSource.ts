@@ -41,6 +41,7 @@ export interface SnapshotSource {
   loadSnapshot(): Promise<Snapshot>;
   loadSnapshotById?(snapshotId: string): Promise<Snapshot>;
   listProjects?(): Promise<ProjectSummary[]>;
+  removeProject?(projectId: string): Promise<void>;
   getSelectedProject?(): ProjectSummary | null;
   selectProject?(projectId: string): Promise<Snapshot>;
   registerProject?(input: { rootPath: string; name?: string }): Promise<{

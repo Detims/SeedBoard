@@ -41,6 +41,8 @@ To list locally registered projects:
 pnpm --filter @modernizer/cli exec node dist/index.js project list
 ```
 
+Use **Switch project** in the dashboard to remove a project from SeedBoard. This deletes its registration, scans, snapshots, saved layouts, and suggestion decisions from SeedBoard's local database. The project folder and its files are not changed. An active scan must be cancelled or allowed to finish before removal.
+
 The browser cannot choose or submit a filesystem root. The first version collects Node manifests/npm lockfiles, GitHub workflow YAML, and migration filenames. Provider runs, deployment versions, applied database migration state, and non-Node stacks remain unknown unless an explicit future adapter supplies evidence.
 
 ## Local data and backup

@@ -46,6 +46,18 @@ export class LocalApiSnapshotSource implements SnapshotSource {
     return this.#request<ProjectSummary[]>("/projects");
   }
 
+  async removeProject(projectId: string): Promise<void> {
+    await this.#request<{ removed: boolean }>(`/projects/${encodeURIComponent(projectId)}`, {
+      method: "DELETE",
+      body: "{}",
+    });
+    if (this.#projectId === projectId) {
+      this.#projectId = null;
+      this.#selectedProject = null;
+      window.localStorage.removeItem("modernizer:last-project");
+    }
+  }
+
   async selectProject(projectId: string): Promise<Snapshot> {
     const projects = await this.listProjects();
     const project = projects.find((item) => item.id === projectId);
