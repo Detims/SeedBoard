@@ -106,6 +106,23 @@ describe("Modernizer SQLite storage", () => {
     expect(store.getSnapshot("snapshot-full")?.snapshot.projectId).toBe(project.id);
   });
 
+  it("removes assessment history with its project and blocks active scans", async () => {
+    const project = await register();
+    const activeJob = store.createScanJob(project.id);
+    expect(() => store.removeProject(project.id)).toThrow(ScanConflictError);
+    store.updateScanJob(activeJob.id, { state: "cancelled", stage: "cancelled" });
+
+    const scan = store.createScanJob(project.id);
+    store.updateScanJob(scan.id, { state: "running", stage: "normalizing" });
+    store.publishSnapshot(scan.id, snapshotFor(project.id, "snapshot-to-remove"));
+    store.removeProject(project.id);
+
+    expect(store.getProject(project.id)).toBeNull();
+    expect(store.getScanJob(scan.id)).toBeNull();
+    expect(store.getSnapshot("snapshot-to-remove")).toBeNull();
+    expect(store.listProjects()).toEqual([]);
+  });
+
   it("derives partial status from coverage and leaves live states unknown", async () => {
     const project = await register();
     const job = store.createScanJob(project.id);

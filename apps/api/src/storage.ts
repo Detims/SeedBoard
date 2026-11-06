@@ -230,6 +230,28 @@ export class ModernizerStore {
     }));
   }
 
+  removeProject(projectId: string): void {
+    if (!this.getProject(projectId)) throw new ResourceNotFoundError("Project not found.");
+    if (this.listActiveJobs().some((job) => job.projectId === projectId)) {
+      throw new ScanConflictError(
+        "Cancel or wait for the active scan before removing this project.",
+      );
+    }
+    this.#db.exec("BEGIN IMMEDIATE");
+    try {
+      // Clear the cycle between scan_jobs.snapshot_id and snapshots.scan_job_id first.
+      this.#db
+        .prepare("UPDATE scan_jobs SET snapshot_id = NULL WHERE project_id = ?")
+        .run(projectId);
+      this.#db.prepare("DELETE FROM snapshots WHERE project_id = ?").run(projectId);
+      this.#db.prepare("DELETE FROM projects WHERE id = ?").run(projectId);
+      this.#db.exec("COMMIT");
+    } catch (error) {
+      this.#db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   getProject(projectId: string): RegisteredProject | null {
     const row = rowOrNull(
       this.#db
